@@ -3,5 +3,8 @@
 
 
 ## Setup
-1.  Lorem ipsum dolor sit amet, consectet
-2.  lorem ipsum dolor sit amet
+1.  Install required libraries.
+```
+pip3 install -r requirements.txt
+```
+2.  Lorem ipsum dolor sit amet, consectet
