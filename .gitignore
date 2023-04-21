@@ -1,0 +1,2 @@
+#Ignoring a venv file so virtual environments can be created easily
+venv/
