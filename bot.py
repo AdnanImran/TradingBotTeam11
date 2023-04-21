@@ -3,13 +3,14 @@ import ta
 import pandas as pd
 #Bollinger Bands help identify sharp, short-term price movements and potential entry and exit points.
 #ATR measures volatility, taking into account any gaps in the price movement. Typically, ATR calculation is based on 14 periods - can be intraday, daily, weekly, or monthly.
-from ta.volatility import BollingerBands, AverageTrueRange 
+from ta.volatility import BollingerBands, AverageTrueRange
+from ta.trend import SMAIndicator
 
 #Sets up data & variables
 exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=270)
 df = pd.DataFrame(bitcoin_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-bb_indicator = BollingerBands(df['close'])
+bb_indicator = BollingerBands(df['close'],window=5)
 
 #Just testing it works
 #for candle in bitcoin_data:
@@ -29,5 +30,28 @@ df['moving_average']=bb_indicator.bollinger_mavg()
 atr_indicator = AverageTrueRange(df['high'], df['low'], df['close'])
 df['atr'] = atr_indicator.average_true_range()
 
+#Adds Simple Moving Average to the dataframe
+df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
+
 #Just testing it works
-#print(df)
+#print(df.rows)
+
+
+#Buy Trigger to return true or false if we should buy on a particular timestamp according to our parameters
+def buyTrigger(timestamp, parameters):
+    return buy(timestamp, parameters) and (not buy(timestamp-1, parameters)) and (not (sell(timestamp, parameters) and not sell(timestamp-1, parameters)))
+
+#Sell Trigger to return true or false if we should sell on a particular timestamp according to our parameters
+def sellTrigger(timestamp, parameters):
+    return sell(timestamp, parameters) and (not sell(timestamp-1, parameters)) and (not (buy(timestamp, parameters) and not buy(timestamp-1, parameters)))
+
+#BUY AND SELL FUNCTIONS JUST FOR TESTING NOW TO SEE IF TRIGGERS WORK, NEED TO FILL IN WITH ACTUAL ALGORITHM LATER
+def buy(timestamp, parameters):
+    if timestamp == 0:
+        return False
+    return True
+
+def sell(timestamp, parameters):
+    if timestamp == 1:
+        return False
+    return True
