@@ -11,7 +11,7 @@ pip3 install -r requirements.txt
 
 ## Research
 Some articles that might be useful:
-- "An Automated Trading System with Multi-indicator Fusion Based on GA and SVM" by J. Liu, L. Liu, and Z. Gao (2018)
-- "Using Evolutionary Algorithms to Build Technical Trading Rules for Indian Stock Markets" by R. Sharma and P. Kumar (2014)
-- "Optimizing Trading Strategies through an Agent-Based Evolutionary Approach" by M. Ormos, P. Korosi, and G. Varga (2013)
-- "A Genetic Algorithm Approach to Trading System Development" by J. Weiming and L. Xiaojun (2009)
+- "An intelligent hybrid trading system for discovering trading rules for the futures market using rough sets and genetic algorithms" by JKim, Youngmin ; Ahn, Wonbin ; Oh, Kyong Joo ; Enke, David (2017)
+- "Developing an enhanced portfolio trading system using K-means and genetic algorithms" by Ahn, Wonbin ; Cheong, Donghyun ; Kim, Youngmin ; Oh, Kyong Joo (2018)
+- "An Automated Trading System with Multi-indicator Fusion Based on D-S Evidence Theory in Forex Market" by Liu, Zhihong ; Xiao, Deyun (2009)
+- "Ensemble learning of rule-based evolutionary algorithm using multi layer perceptron for stock trading models" by Mabu, Shingo ; Obayashi, Masanao ; Kuremoto, Takashi (2014)
