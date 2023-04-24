@@ -28,32 +28,57 @@ General framework of the algorithm
     - replace previous generation with the new generation
     - repeat while loop
 
-### 1.2 Genetic Pros & Cons
+#### 1.1 Genetic Pros & Cons
 **Pros:**
-    - Similar to one of the algorithms our team member wrote their essay on.
-    - Easy to understand and implement.
-    - Algorithm performance is quite fast when compared with other algorithms
+- Similar to one of the algorithms our team member wrote their essay on.
+- Easy to understand and implement.
+- Algorithm performance is quite fast when compared with other algorithms
 
 **Cons:**
-    - There's no garauntee that the random heuristics will find the optimum solution.
-    - Can get stuck at a local maxima point.
+- There's no garauntee that the random heuristics will find the optimum solution.
+- Can get stuck at a local maxima point.
 
-### 1.3 Genetic Further Reading
-    - "An Intelligent Model for Pairs Trading Using Genetic Algorithms" by Chien-Feng Huang,1 Chi-Jen Hsu,1 Chi-Chung Chen,2 Bao Rong Chang,1 and Chen-An Li (2015) --> Very similar to approach we're taking, and describes success of genetic algorithms for this type of problem.
-    - "Incorporating Markov decision process on genetic algorithms to formulate trading strategies for stock markets" --> explains how this approach is optimal for helping investors solve timing problems.
+#### 1.2 Genetic Further Reading
+- "An Intelligent Model for Pairs Trading Using Genetic Algorithms" by Chien-Feng Huang,1 Chi-Jen Hsu,1 Chi-Chung Chen,2 Bao Rong Chang,1 and Chen-An Li (2015) --> Very similar to approach we're taking, and describes success of genetic algorithms for this type of problem.
+- "Incorporating Markov decision process on genetic algorithms to formulate trading strategies for stock markets" --> explains how this approach is optimal for helping investors solve timing problems.
 
 ### 2. Swarm Algorithm
 
 
-### 2.2 Genetic Pros & Cons
+#### 2.1 Genetic Pros & Cons
 **Pros:**
-    - 
+- 
 
 **Cons:**
-    - 
+- 
 
-### 2.3 Genetic Further Reading
-    - 
+#### 2.2 Genetic Further Reading
+- 
+
+
+### 3. Ant Colony Optimization (ACO)
+
+#### 3.1 Genetic Pros & Cons
+**Pros:**
+- 
+
+**Cons:**
+- 
+
+#### 3.2 Genetic Further Reading
+- 
+
+### 4. Ant Colony Optimization (ACO)
+
+#### 4.1 Genetic Pros & Cons
+**Pros:**
+- 
+
+**Cons:**
+- 
+
+#### 4.2 Genetic Further Reading
+- 
 
 ## Measuring Success
     "Modeling, forecasting and trading the EUR exchange rates with hybrid rolling genetic algorithms—Support vector regression forecast combinations" by Georgios Sermpinis, Charalampos Stasinakis, Konstantinos Theofilatos, Andreas Karathanasopoulos (2015) notes that  "statistical accuracy is not always synonymous with financial profitability." We as a group need to make a conscious decision about whether to hold the bot's performance against its statistical accuracy or its financial profitablility. Given the specifications of the assignment, we feel that the financial profitablility is the best measure of success. We are provided clear instructions to consider the value of each trade and if we measured success based on statistical accuracy exclusively we could discard this variable. 
