@@ -41,9 +41,22 @@ General framework of the algorithm
 - "An Intelligent Model for Pairs Trading Using Genetic Algorithms" by Chien-Feng Huang,1 Chi-Jen Hsu,1 Chi-Chung Chen,2 Bao Rong Chang,1 and Chen-An Li (2015) --> *Very similar to approach we're taking, and describes success of genetic algorithms for this type of problem.*
 - "Incorporating Markov decision process on genetic algorithms to formulate trading strategies for stock markets" --> *Explains how this approach is optimal for helping investors solve timing problems.*
 
-### 2. Swarm Algorithm
+### 2. Swarm Algorithm (Specifically Particle Swarm Optimisation (PSO))
 General framework of the algorithm
-1. 
+1. Randomly initialise a population of values/parameters we want to optimise. Each individual in the population represents a solution that we want to use.
+2. while stopping criterion is not met do: 
+    - evaluate how each individual performs by calculating its fitness value against a fitness function
+    - determine the best performing agent as save that agents values/parameters as the global best
+    - determine each agents individual best performance based on previous performances
+    - update each agents position/weight based on its current performance, the global best performance and its own personal best performance (The way this update is done varies between different type of swarm algorithms)
+    - repeat while loop
+3. Return global best agent (agent that has the best parameter/values)
+
+#### 2.0.1 Particle Swarm Optimisation Algorithm
+
+The general framework of this algorithm follows typical swarm algorithms as described above, with the difference being how each agents position/weight is updated.
+
+More specifically updating the velocity and position of each particle based on its current position, personal best position, and global best position. This is calculated using a formula that balances exploration (finding new solutions or unexplored areas in the solution space) and exploitation (moving towards optimizing the best-known solutions) 
 
 #### 2.1 Swarm Pros & Cons
 **Pros:**
@@ -58,6 +71,8 @@ General framework of the algorithm
 
 #### 2.2 Swarm Further Reading
 - "A constrained portfolio trading system using particle swarm algorithm and recurrent reinforcement learning" by Saud Almahdi, Steve Y. Yang (2019) --> *Notes that while this algorithm optimized short term portfolios, it was not so effective at optimizing long term portfolios.*
+
+- A. C. Briza and P. C. Naval, “Stock trading system based on the multi-objective particle swarm optimization of technical indicators on end-of-day market data,” Applied soft computing, vol. 11, no. 1, pp. 1191–1201, 2011, doi: 10.1016/j.asoc.2010.02.017. --> *Similar to the approach we will be taking*
 
 ### 3. Ant Colony Optimization (ACO)
 General framework of the algorithm
