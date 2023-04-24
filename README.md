@@ -76,18 +76,36 @@ More specifically updating the velocity and position of each particle based on i
 
 ### 3. Ant Colony Optimization (ACO)
 General framework of the algorithm
-1. 
+
+Initialization: Ensure that the length of every edge is proportional to its distance/weight. Assign a pheromone value (initially 0) to each graph edge. 
+
+While the stopping criterion is not met do:
+1. Generate a population of ants that traverse the graph and search for a solution path. 
+    - Each ant is 'initialised' at a random valid starting point. 
+    - Ants have a higher probability of choosing edges with higher pheromone concentrations.
+    - On the first iteration, each ant has an equal probability of selecting any adjacent edge (that it has not already visited).
+2. When an ant finds a solution, every edge on the solution path is marked with pheromones.
+    - Pheromone concentration for a particualr edge increases as more solutions are found using that edge.
+    - Note: better solutions are reached earlier, so their edge pheromone levels influence ants that are yet to find a solution.
+3. After every ant has reached a solution, decrease all edge pheromone concentrations by a set percentage (Pheromone evaporation).
+
 
 #### 3.1 ACO Pros & Cons
 **Pros:**
 - Capable of solving complex optimization problems [*But is this project a complex problem? I would say no - Georgia*]
+- Gives positive feedback for solutions in progress (can find good solutions efficiently)
+- Adapts in real time (can deal with dynamically changing graphs)
 
 **Cons:**
 - Easily falls into trap of local optimum
 - Can be slow when dealing with large problem spaces. 
+- Only compatible with problems that can be expressed as a shortest path graph search <-- Main issue for this project
 
 #### 3.2 ACO Further Reading
-- 
+- Muhammed Kabir Ahmed, Gregory Maksha Wajiga, Nachamada Vachaku Blamah, Bala Modi. Stock Market Forecasting Using ant Colony
+Optimization Based Algorithm. American Journal of Mathematical and Computer Modelling. Vol. 4, No. 3, 2019, pp. 52-57.
+doi: 10.11648/j.ajmcm.20190403.11
+- Abolmaali, Saina & F.R.Roodposhti,. (2016). Portfolio Optimization using ant colony method a case study on Tehran stock exchange. 
 
 ### 4. Differential Evolution (DE)
 General framework of the algorithm
