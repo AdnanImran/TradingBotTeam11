@@ -27,24 +27,60 @@ df['atr'] = atr_indicator.average_true_range()
 #Adds Simple Moving Average to the dataframe
 df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
 
+print(df['timestamp'].iloc[0])
+
 #Optimization Algorithm
 def optimize():
-    """Typical parameters used in DE are listed as following:
-    D – Problem dimension -> Defined by the number of decision variables or parameters that are being optimized in the fitness function. 2 (or 3 - will we include fillna?)
-    N – Population size (pop_var) -> How many input variables will be consider each time?
-    Cr – Crossover probability (cross_prob) -> value between 0 and 1. 0 means there will be no crossover. 
+    best_solution = [] #dummy value until I know what to use
+    best_profit= 0
+    candidate_solution = [] #dummy value until I know what to use
+
+    #Typical Parameters for our DE
+    #D – Problem dimension -> Defined by the number of decision variables or parameters that are being optimized in the fitness function. 2 (or 3 - will we include fillna?)
+    #N – Population size (pop_var) -> How many input variables will be consider each time?
+    #Cr – Crossover probability (cross_prob) -> value between 0 and 1. 0 means there will be no crossover. 
     #The higher the value the more the algorithm will explore. The lower the value the more the algorithm can refine promising solution spaces. 
     #Can we do a high value first and then create a list of optimal solutions and run it once more and lower the value?
-    F – Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step. 
-    G – Number of generation/stopping condition -> Decide how many iterations should be considered.
-    Li,Hi – boundary for dimension i -> the range of values that 'dimension i' of each candidate solution is allowed to take during the optimization process. These boundaries help to constrain the search space of the algorithm.
+    #F – Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
+    gen = 10  #G – Number of generation/stopping condition -> Decide how many iterations should be considered.     
+    #Li,Hi – boundary for dimension i -> the range of values that 'dimension i' of each candidate solution is allowed to take during the optimization process. These boundaries help to constrain the search space of the algorithm.
     #Basically it helps ensure that candidate solutions remain within the feasible region of the search space.
-    """
-    return None
+
+    #Start algorithm
+    for i in range(gen):
+        #REVIEW LATER - Need to find a better way of selecting the first best solution.
+        if i == 0:
+            best_solution = candidate_solution
+        
+        #Call fitness function to check candidate solutions
+        check = fitness(candidate_solution, best_profit, df)
+        if check:
+            best_profit = check
+            best_solution = candidate_solution
+    return best_solution
 
 #Tells the DE algorithm if a solution is viable or not.
-def fitness(candidate_solution, df):
-    return None
+def fitness(candidate_solution, best_profit, df):
+    #Firstly, check if candidate solution is valid 
+
+    #Check if window value is valid and if window_dev is valid.
+    #If we implement a function that adapts based on market volatility then we will need to give the window_dev check condition some more thought.
+    if not(candidate_solution[0] > 0 and candidate_solution[0] < 720) or not(candidate_solution[1] > 0):
+        return False
+
+
+    #Calculate total profits from candidate solution
+    candidate_profit= 0 # Run buy/sell function here to calc profit.
+
+
+    #Check if candidate solution is better than current best solution
+    if (best_profit >= candidate_profit):
+        return False
+    
+    #If candidate solution is better then reassign best_profit.
+    else:
+        best_profit = candidate_profit
+        return best_profit
 
 
 #Buy Trigger to return true or false if we should buy on a particular timestamp according to our parameters
