@@ -2,4 +2,3 @@ ccxt #We can remove this if we store static data
 ta
 pandas
 random
-numpy
