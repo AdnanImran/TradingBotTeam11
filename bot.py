@@ -1,6 +1,7 @@
 import ccxt
 import ta
 import pandas as pd
+import random
 #Bollinger Bands help identify sharp, short-term price movements and potential entry and exit points.
 from ta.volatility import BollingerBands, AverageTrueRange
 from ta.trend import SMAIndicator
@@ -37,14 +38,20 @@ def optimize():
 
     #Typical Parameters for our DE
     #D – Problem dimension -> Defined by the number of decision variables or parameters that are being optimized in the fitness function. 2 (or 3 - will we include fillna?)
-    #N – Population size (pop_var) -> How many input variables will be consider each time?
+    popSize = 5 #N – Population size (pop_var) -> How many input variables will be consider each time?
     #Cr – Crossover probability (cross_prob) -> value between 0 and 1. 0 means there will be no crossover. 
     #The higher the value the more the algorithm will explore. The lower the value the more the algorithm can refine promising solution spaces. 
     #Can we do a high value first and then create a list of optimal solutions and run it once more and lower the value?
     #F – Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
     gen = 10  #G – Number of generation/stopping condition -> Decide how many iterations should be considered.     
-    #Li,Hi – boundary for dimension i -> the range of values that 'dimension i' of each candidate solution is allowed to take during the optimization process. These boundaries help to constrain the search space of the algorithm.
+    bounds = [] #Li,Hi – boundary for dimension i -> the range of values that 'dimension i' of each candidate solution is allowed to take during the optimization process. These boundaries help to constrain the search space of the algorithm.
     #Basically it helps ensure that candidate solutions remain within the feasible region of the search space.
+
+    # Initialise Population and randomly pick values for the parameters
+
+    # NOTE: Bounds would be an array of tuples stating min and max values for each parameter
+    # E.g. for 2 parameters, bounds = [(1,5), (0,10)]
+    population = initPopulation(popSize, bounds)
 
     #Start algorithm
     for i in range(gen):
@@ -81,6 +88,20 @@ def fitness(candidate_solution, best_profit, df):
     else:
         best_profit = candidate_profit
         return best_profit
+
+# Initialise the population
+# popSize --> Number of individuals in population
+# bounds --> Bounds of each parameter 
+# returns an array of parameter values for a solution.
+# e.g. population = [ [0,1], [2,5] ]
+def initPopulation(popSize, bounds):
+    population = []
+    for i in range(0,popSize):
+        indv = []
+        for j in range(len(bounds)):
+            indv.append(random.uniform(bounds[j][0],bounds[j][1]))
+        population.append(indv)
+    return population
 
 
 #Buy Trigger to return true or false if we should buy on a particular timestamp according to our parameters
