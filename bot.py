@@ -11,8 +11,6 @@ exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 df = pd.DataFrame(bitcoin_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 bb_indicator = BollingerBands(df['close'],window=5)
-cash= 100.0
-crypto=0.0
 
 #Adds upper band to dataframe
 df['upper_band'] = bb_indicator.bollinger_hband()
@@ -33,16 +31,10 @@ df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
 
 #Optimization Algorithm
 def optimize():
-    best_solution = [] #dummy value until I know what to use
-    best_profit= 0
-    candidate_solution = [] #dummy value until I know what to use
-
-    #Typical Parameters for our DE
-    #D – Problem dimension -> Defined by the number of decision variables or parameters that are being optimized in the fitness function. 2 (or 3 - will we include fillna?)
-    popSize = 10 #N – Population size (pop_var) -> How many input variables will be consider each time?
+    popSize = 10 #Population size -> How many versions of parameters will be created in each generation
     recombinationValue = 0.4
-    mutationValue = 0.6#F – Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
-    gen = 10  #G – Number of generation/stopping condition -> Decide how many iterations should be considered.     
+    mutationValue = 0.6 #Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
+    gen = 10  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
     bounds = [(1,720),(0,100)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
 
     # Initialise Population and randomly pick values for the parameters
@@ -94,8 +86,6 @@ def optimize():
             # Checks that new values are within the bounds of our parameters
             vectorDonor = checkBounds(vectorDonor, bounds)
 
-            '''Recombination section needs additional work to factor in both parameters'''
-
             #--- RECOMBINATION/CROSSOVER ----------
             # Recombination incorporates successful solutions from the previous generation
             # Here we randomly select which parameters should continue on, since this example only
@@ -135,7 +125,7 @@ def optimize():
         # fitness of best individual
         gen_best = max(gen_scores)
         # solution of best individual
-        gen_sol = population[gen_scores.index(min(gen_scores))]
+        gen_sol = population[gen_scores.index(max(gen_scores))]
 
         print('> GENERATION AVERAGE:',gen_avg)
         print('> GENERATION BEST:',gen_best)
@@ -163,8 +153,6 @@ def checkBounds(solutions, bounds):
     return updatedSolutions
 
 # Initialise the population
-# popSize --> Number of individuals in population
-# bounds --> Bounds of each parameter 
 # returns an array of parameter values for a solution.
 # e.g. population = [ [0,1], [2,5] ]
 def initPopulation(popSize, bounds):
@@ -176,9 +164,20 @@ def initPopulation(popSize, bounds):
         population.append(indv)
     return population
 
-# Tests the performance of the optimization algorithm.
-def evaluate(df, results):
-    return None
+# Tests the performance using backtesting the optimization algorithm. 
+def evaluate(results):
+    # Compares optimized paramters against default parameters for bollinger bands
+    #Default values 20 periods, 2 S.D.
+
+    #Generate baseline here
+
+    #Compare baseline & optimized
+    # successRate = ((optimized/baseline)-1)*100
+
+
+    #We could also split the data and do futuretesting. > Maybe it would be good to do this in a separate method.
+
+    return None #return successRate
 
 #Buy Trigger to return true or false if we should buy on a particular timestamp according to our parameters
 def buyTrigger(timestamp, parameters):
@@ -199,23 +198,19 @@ def sell(timestamp, parameters):
         return False
     return True
 
-def trade(df, parameters):
-    #buy and sell functions here?
-    return None
-
 '''Three Key Functions'''
 # Generate optimal parameters.
 tradeParameters = optimize()
 # Run the trade.
-results = trade(df, tradeParameters)
+results = trade()
 # Test performance of optimization.
-effectiveness = evaluate(df, results)
+successRate = evaluate(results)
 
 # Report results.
 print("Final value: $" & results)
-if effectiveness > 0:
-    print("Trading bot performed " & effectiveness & "\% better than the __chosen baseline__.")
-elif effectiveness < 0:
-    print("Trading bot performed " & abs(effectiveness) & "% poorer than the __chosen baseline__. Output was not successfully optimized.")
+if successRate > 0:
+    print("Trading bot performed " & successRate & "\% better than the __chosen baseline__.")
+elif successRate < 0:
+    print("Trading bot performed " & abs(successRate) & "% poorer than the __chosen baseline__. Output was not successfully optimized.")
 else:
     print("Trading bot's performance matched the __chosen baseline__. Output was not successfully optimized.")
