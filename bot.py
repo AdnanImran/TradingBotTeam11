@@ -10,7 +10,6 @@ from ta.trend import SMAIndicator, EMAIndicator
 #Sets up data & variables
 exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
-bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 df = pd.DataFrame(bitcoin_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 bb_indicator = BollingerBands(df['close'],window=5)
 
@@ -42,10 +41,10 @@ df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].lo
 #Optimization Algorithm
 def optimize():
     popSize = 10 #Population size -> How many versions of parameters will be created in each generation
-    recombinationValue = 0.4
+    recombinationValue = 0.7
     mutationValue = 0.6 #Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
-    gen = 10  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
-    bounds = [(1,720),(0,100)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
+    gen = 50  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
+    bounds = [(0,1),(1,720),(0,100)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
 
     # Initialise Population and randomly pick values for the parameters
     population = initPopulation(popSize, bounds)
@@ -113,11 +112,9 @@ def optimize():
                 # recombination did not occur
                 else:
                     selected.append(xT[k])
-
             #--- SELECTION ----------
             # This is a greedy method where if the new score is greater than previous score it will take new one
             # In this example scenario this is to max the area of a circle
-
             newScore  = trade(selected)
             oldScore = trade(xT)
 
@@ -151,18 +148,18 @@ def checkBounds(solutions, bounds):
 
         # variable exceedes the minimum boundary
         if solutions[i] < bounds[i][0]:
-            updatedSolutions.append(bounds[i][0])
+            updatedSolutions.append(round(bounds[i][0]))
 
         # variable exceedes the maximum boundary
         if solutions[i] > bounds[i][1]:
-            updatedSolutions.append(bounds[i][1])
+            updatedSolutions.append(round(bounds[i][1]))
 
         # the variable is fine
         if bounds[i][0] <= solutions[i] <= bounds[i][1]:
-            updatedSolutions.append(solutions[i])
+            updatedSolutions.append(round(solutions[i]))
     return updatedSolutions
 
-# Initialise the population
+# Initialise the populationoptimize
 # returns an array of parameter values for a solution.
 # e.g. population = [ [0,1], [2,5] ]
 def initPopulation(popSize, bounds):
@@ -180,7 +177,7 @@ def initPopulation(popSize, bounds):
 def evaluate(results):
     #Compares optimized paramters against default parameters for bollinger bands
     #Default values 20 periods, 2 S.D.
-    baseline=trade([20,2])
+    baseline=trade([1,20,2])
     successRate = ((results/baseline)-1)*100
     return successRate
 
@@ -226,19 +223,19 @@ def sell(timestamp, df):
     return False
 
 # PARAMETERS = [ TRIGGER_INDICATOR (SMA=0, CLOSE=1, EMA=2), BOLLINGER_BANDS_WINDOW, TRIGGER_WINDOW_SIZE ] 
-def evaluate(parameters=[0,14,3]):
+def trade(parameters):
     #initialise temp dataframe
     eval_df = pd.DataFrame()
     eval_df["simplified_timestamp"] = df["simplified_timestamp"]
-    BOLLINGER_BANDS_WINDOW = parameters[1]
-    TRIGGER_WINDOW_SIZE = parameters[2]
+    BOLLINGER_BANDS_WINDOW = round(parameters[1])
+    TRIGGER_WINDOW_SIZE = round(parameters[2])
     #FIND TRIGGER INDICATOR
-    if parameters[0] == 0: #SMA
+    if round(parameters[0]) == 0: #SMA
         eval_df["Indicator"] = SMAIndicator(df['close'],window=TRIGGER_WINDOW_SIZE).sma_indicator()
-    elif parameters[0] == 1: #CLOSE
+    elif round(parameters[0]) == 1: #CLOSE
         eval_df["Indicator"] = df['close']
-    elif parameters[0] == 2: #EMA
-        eval_df["Indicator"] = EMAIndicator(df['close'], window = TRIGGER_WINDOW_SIZE).ema_indicator()
+    #elif round(parameters[0]) == 2: #EMA
+        #eval_df["Indicator"] = EMAIndicator(df['close'], window = TRIGGER_WINDOW_SIZE).ema_indicator()
     
     #BOLLINGER BANDS
     bands = BollingerBands(df['close'],window=BOLLINGER_BANDS_WINDOW)
@@ -256,7 +253,7 @@ def evaluate(parameters=[0,14,3]):
         elif sellTrigger(row, eval_df):
             money += bitcoin * df['close'].loc[row]
             bitcoin = 0
-        print(row, "Money:", money, "Bitcoin:", bitcoin)
+        #print(row, "Money:", money, "Bitcoin:", bitcoin)
     return money
 
 
@@ -264,16 +261,17 @@ def evaluate(parameters=[0,14,3]):
 '''Three Key Functions'''
 # Generate optimal parameters.
 tradeParameters = optimize()
+print(tradeParameters)
 # Run the trade.
 results = trade(tradeParameters)
 # Test performance of optimization.
 successRate = evaluate(results)
-
+print(successRate)
 # Report results.
-print("Final value: $" & results)
-if successRate > 0:
-    print("Trading bot performed " & successRate & "\% better than the __chosen baseline__.")
-elif successRate < 0:
-    print("Trading bot performed " & abs(successRate) & "% poorer than the __chosen baseline__. Output was not successfully optimized.")
-else:
-    print("Trading bot's performance matched the __chosen baseline__. Output was not successfully optimized.")
+#print("Final value: $" & results)
+#if successRate > 0:
+    #print("Trading bot performed " & successRate & "\% better than the __chosen baseline__.")
+#elif successRate < 0:
+    #print("Trading bot performed " & abs(successRate) & "% poorer than the __chosen baseline__. Output was not successfully optimized.")
+#else:
+    #print("Trading bot's performance matched the __chosen baseline__. Output was not successfully optimized.")
