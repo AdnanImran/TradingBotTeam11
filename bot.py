@@ -10,7 +10,17 @@ from ta.trend import SMAIndicator, EMAIndicator
 #Sets up data & variables
 exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
-df = pd.DataFrame(bitcoin_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+
+# Training and testing data split 80/20 (should test data be start or end of 2-year period?)
+
+# df_train = pd.DataFrame(bitcoin_data[143:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+# df_test = pd.DataFrame(bitcoin_data[:143], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+df_train = pd.DataFrame(bitcoin_data[:575], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+df_test = pd.DataFrame(bitcoin_data[575:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+
+# Assign df to training dataframe initially
+df = df_train 
+
 bb_indicator = BollingerBands(df['close'],window=5)
 
 #Adds upper band to dataframe
@@ -43,8 +53,8 @@ def optimize():
     popSize = 10 #Population size -> How many versions of parameters will be created in each generation
     recombinationValue = 0.7
     mutationValue = 0.6 #Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
-    gen = 50  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
-    bounds = [(0,1),(1,720),(0,100)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
+    gen = 10  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
+    bounds = [(0,1),(1,576),(0,100)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
 
     # Initialise Population and randomly pick values for the parameters
     population = initPopulation(popSize, bounds)
@@ -178,6 +188,7 @@ def evaluate(results):
     #Compares optimized paramters against default parameters for bollinger bands
     #Default values 20 periods, 2 S.D.
     baseline=trade([1,20,2])
+    print("Baseline: ", baseline)
     successRate = ((results/baseline)-1)*100
     return successRate
 
@@ -275,3 +286,46 @@ print(successRate)
     #print("Trading bot performed " & abs(successRate) & "% poorer than the __chosen baseline__. Output was not successfully optimized.")
 #else:
     #print("Trading bot's performance matched the __chosen baseline__. Output was not successfully optimized.")
+
+
+# FORWARD TESTING
+
+# Reassign df to test dataframe
+df = df_test 
+
+# Indicator initialisation code copied from above (maybe put in a function)
+bb_indicator = BollingerBands(df['close'],window=5)
+
+#Adds upper band to dataframe
+df['upper_band'] = bb_indicator.bollinger_hband()
+
+#Adds lower band to dataframe 
+df['lower_band'] = bb_indicator.bollinger_lband()
+
+#Adds smooth moving average to dataframe
+df['smooth moving_average']=bb_indicator.bollinger_mavg()
+
+#Adds Exponential Moving Avergae to dataframe
+df['EMA'] = EMAIndicator(df['close'], window = 5).ema_indicator()
+
+#Adds average true range indicator to dataframe
+atr_indicator = AverageTrueRange(df['high'], df['low'], df['close'])
+df['atr'] = atr_indicator.average_true_range()
+
+#Adds Simple Moving Average to the dataframe
+df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
+
+#Simplifies the timestamp to be easier to use with triggers
+df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+
+#Simplifies the timestamp to be easier to use with triggers
+df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+
+
+# # Run trade with optimized parameters
+results = trade(tradeParameters)
+print("Test data results: ", results)
+
+# # Evalaute trade success
+successRate = evaluate(results)
+print("Test data success rate: ", successRate)
