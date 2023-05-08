@@ -12,10 +12,12 @@ exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 
 # Training and testing data split 80/20 (should test data be start or end of 2-year period?)
-split = round(0.8*720)
+split_ratio = 0.8
+split = round(split_ratio*720)
+print("Split:",split_ratio*100,"% training,",round((1-split_ratio)*100),"% testing")
 
-# df_train = pd.DataFrame(bitcoin_data[143:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-# df_test = pd.DataFrame(bitcoin_data[:143], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+# df_train = pd.DataFrame(bitcoin_data[split-1:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+# df_test = pd.DataFrame(bitcoin_data[:split-1], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 df_train = pd.DataFrame(bitcoin_data[:split-1], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 df_test = pd.DataFrame(bitcoin_data[split-1:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 
@@ -291,42 +293,45 @@ print(successRate)
 
 # FORWARD TESTING
 
-# Reassign df to test dataframe
-df = df_test 
+# Only forward test if data is split
+if split != 720:
 
-# Indicator initialisation code copied from above (maybe put in a function)
-bb_indicator = BollingerBands(df['close'],window=5)
+    # Reassign df to test dataframe
+    df = df_test 
 
-#Adds upper band to dataframe
-df['upper_band'] = bb_indicator.bollinger_hband()
+    # Indicator initialisation code copied from above (maybe put in a function)
+    bb_indicator = BollingerBands(df['close'],window=5)
 
-#Adds lower band to dataframe 
-df['lower_band'] = bb_indicator.bollinger_lband()
+    #Adds upper band to dataframe
+    df['upper_band'] = bb_indicator.bollinger_hband()
 
-#Adds smooth moving average to dataframe
-df['smooth moving_average']=bb_indicator.bollinger_mavg()
+    #Adds lower band to dataframe 
+    df['lower_band'] = bb_indicator.bollinger_lband()
 
-#Adds Exponential Moving Avergae to dataframe
-df['EMA'] = EMAIndicator(df['close'], window = 5).ema_indicator()
+    #Adds smooth moving average to dataframe
+    df['smooth moving_average']=bb_indicator.bollinger_mavg()
 
-#Adds average true range indicator to dataframe
-atr_indicator = AverageTrueRange(df['high'], df['low'], df['close'])
-df['atr'] = atr_indicator.average_true_range()
+    #Adds Exponential Moving Avergae to dataframe
+    df['EMA'] = EMAIndicator(df['close'], window = 5).ema_indicator()
 
-#Adds Simple Moving Average to the dataframe
-df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
+    #Adds average true range indicator to dataframe
+    atr_indicator = AverageTrueRange(df['high'], df['low'], df['close'])
+    df['atr'] = atr_indicator.average_true_range()
 
-#Simplifies the timestamp to be easier to use with triggers
-df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+    #Adds Simple Moving Average to the dataframe
+    df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
 
-#Simplifies the timestamp to be easier to use with triggers
-df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+    #Simplifies the timestamp to be easier to use with triggers
+    df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+
+    #Simplifies the timestamp to be easier to use with triggers
+    df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
 
 
-# # Run trade with optimized parameters
-results = trade(tradeParameters)
-print("Test data results: ", results)
+    # # Run trade with optimized parameters
+    results = trade(tradeParameters)
+    print("Test data results: ", results)
 
-# # Evalaute trade success
-successRate = evaluate(results)
-print("Test data success rate: ", successRate)
+    # # Evalaute trade success
+    successRate = evaluate(results)
+    print("Test data success rate: ", successRate)
