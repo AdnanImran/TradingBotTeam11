@@ -12,11 +12,12 @@ exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 
 # Training and testing data split 80/20 (should test data be start or end of 2-year period?)
+split = round(0.8*720)
 
 # df_train = pd.DataFrame(bitcoin_data[143:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 # df_test = pd.DataFrame(bitcoin_data[:143], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-df_train = pd.DataFrame(bitcoin_data[:575], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-df_test = pd.DataFrame(bitcoin_data[575:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+df_train = pd.DataFrame(bitcoin_data[:split-1], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+df_test = pd.DataFrame(bitcoin_data[split-1:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 
 # Assign df to training dataframe initially
 df = df_train 
@@ -54,7 +55,7 @@ def optimize():
     recombinationValue = 0.7
     mutationValue = 0.6 #Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
     gen = 10  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
-    bounds = [(0,1),(1,576),(0,100)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
+    bounds = [(0,1),(1,split),(0,100)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
 
     # Initialise Population and randomly pick values for the parameters
     population = initPopulation(popSize, bounds)
