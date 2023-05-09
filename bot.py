@@ -3,6 +3,7 @@ import ta
 import pandas as pd
 import random
 import math
+import numpy
 #Bollinger Bands help identify sharp, short-term price movements and potential entry and exit points.
 from ta.volatility import BollingerBands, AverageTrueRange
 from ta.trend import SMAIndicator, EMAIndicator
@@ -13,7 +14,7 @@ bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 
 # split ratio in range (0,1]. default = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against etherium
 split_ratio = 1
-test_at_start = True  # Should test data be start or end of 2-year period?
+test_at_start = False  # Should test data be start or end of 2-year period?
 
 split = round(split_ratio*720)
 
@@ -64,12 +65,12 @@ df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].lo
 df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
 
 #Optimization Algorithm
-def optimize():
+def optimize(buyLimit):
     popSize = 10 #Population size -> How many versions of parameters will be created in each generation
     recombinationValue = 0.7
-    mutationValue = 0.6 #Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
-    gen = 10  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
-    bounds = [(0,1),(1,split),(0,100)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
+    mutationValue = 0.5 #Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
+    gen = 20  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
+    bounds = [(0,2),(1,buyLimit),(1,100),] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
 
     # Initialise Population and randomly pick values for the parameters
     population = initPopulation(popSize, bounds)
@@ -140,8 +141,8 @@ def optimize():
             #--- SELECTION ----------
             # This is a greedy method where if the new score is greater than previous score it will take new one
             # In this example scenario this is to max the area of a circle
-            newScore  = trade(selected)
-            oldScore = trade(xT)
+            newScore  = trade(selected, buyLimit)
+            oldScore = trade(xT, buyLimit)
 
             if newScore > oldScore:
                 population[j] = selected
@@ -173,15 +174,15 @@ def checkBounds(solutions, bounds):
 
         # variable exceedes the minimum boundary
         if solutions[i] < bounds[i][0]:
-            updatedSolutions.append(round(bounds[i][0]))
+            updatedSolutions.append(bounds[i][0])
 
         # variable exceedes the maximum boundary
         if solutions[i] > bounds[i][1]:
-            updatedSolutions.append(round(bounds[i][1]))
+            updatedSolutions.append(bounds[i][1])
 
         # the variable is fine
         if bounds[i][0] <= solutions[i] <= bounds[i][1]:
-            updatedSolutions.append(round(solutions[i]))
+            updatedSolutions.append(solutions[i])
     return updatedSolutions
 
 # Initialise the populationoptimize
@@ -199,11 +200,12 @@ def initPopulation(popSize, bounds):
 # Tests the performance using backtesting the optimization algorithm. 
 #NOTE:We could also split the data and do futuretesting. > Maybe it would be good to do this in a separate method.
 
-def evaluate(results):
+def evaluate(results, buyLimit):
     #Compares optimized paramters against default parameters for bollinger bands
     #Default values 20 periods, 2 S.D.
-    baseline=trade([1,20,2])
-    print("Baseline: ", baseline)
+    baseline=trade([1,20,2], buyLimit)
+    print(f"Baseline: {baseline}")
+    print(f"Results: {results}")
     successRate = ((results/baseline)-1)*100
     return successRate
 
@@ -249,8 +251,9 @@ def sell(timestamp, df):
     return False
 
 # PARAMETERS = [ TRIGGER_INDICATOR (SMA=0, CLOSE=1, EMA=2), BOLLINGER_BANDS_WINDOW, TRIGGER_WINDOW_SIZE ] 
-def trade(parameters):
+def trade(parameters, buyLimit = 720):
     #initialise temp dataframe
+    #print("Start Trade")
     eval_df = pd.DataFrame()
     eval_df["simplified_timestamp"] = df["simplified_timestamp"]
     BOLLINGER_BANDS_WINDOW = round(parameters[1])
@@ -260,39 +263,56 @@ def trade(parameters):
         eval_df["Indicator"] = SMAIndicator(df['close'],window=TRIGGER_WINDOW_SIZE).sma_indicator()
     elif round(parameters[0]) == 1: #CLOSE
         eval_df["Indicator"] = df['close']
-    #elif round(parameters[0]) == 2: #EMA
-        #eval_df["Indicator"] = EMAIndicator(df['close'], window = TRIGGER_WINDOW_SIZE).ema_indicator()
+    elif round(parameters[0]) == 2: #EMA
+        eval_df["Indicator"] = EMAIndicator(df['close'], window = TRIGGER_WINDOW_SIZE).ema_indicator()
     
     #BOLLINGER BANDS
     bands = BollingerBands(df['close'],window=BOLLINGER_BANDS_WINDOW)
     eval_df["upper"] = bands.bollinger_hband()
     eval_df["lower"] = bands.bollinger_lband()
-    
+    #print( "Dataframe created")
+    counter = 0
     money = 100
     bitcoin = 0
     for row in range(len(df)):
-        if buyTrigger(row, eval_df):
-            bitcoin += money / df['close'].loc[row]
-            money = 0
-        elif row == len(df)-1:
+        if counter == buyLimit:
+            if money == 0:
+                money += bitcoin * df['close'].loc[row]
+                bitcoin = 0
+                counter = 0
+            else:
+                bitcoin += money / df['close'].loc[row]
+                money = 0
+                counter = 0
+        elif bitcoin == 0:
+            if buyTrigger(row, eval_df):
+                bitcoin += money / df['close'].loc[row]
+                money = 0 
+        elif money == 0:
+            if sellTrigger(row, eval_df):
+                money += bitcoin * df['close'].loc[row]
+                bitcoin = 0
+        if row == len(df)-1:
             money += bitcoin * df['close'].loc[row]
-        elif sellTrigger(row, eval_df):
-            money += bitcoin * df['close'].loc[row]
-            bitcoin = 0
+        counter += 1
         #print(row, "Money:", money, "Bitcoin:", bitcoin)
+    #print("End Train")
     return money
 
 
 
 '''Three Key Functions'''
 # Generate optimal parameters.
-tradeParameters = optimize()
-print(tradeParameters)
+buyLimit = 350
+tradeParameters = optimize(buyLimit)
+print(numpy.round(tradeParameters))
 # Run the trade.
-results = trade(tradeParameters)
+results = trade(tradeParameters, buyLimit)
 # Test performance of optimization.
-successRate = evaluate(results)
-print(successRate)
+successRate = evaluate(results, buyLimit)
+print(f"Success Rate: {successRate}")
+
+#print(trade([1,20,2], buyLimit))
 # Report results.
 #print("Final value: $" & results)
 #if successRate > 0:
