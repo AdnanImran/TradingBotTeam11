@@ -40,15 +40,19 @@ df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].lo
 df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
 
 #Optimization Algorithm
-def optimize(buyLimit):
-    popSize = 10 #Population size -> How many versions of parameters will be created in each generation
-    recombinationValue = 0.7
-    mutationValue = 0.5 #Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
-    gen = 20  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
+def optimize(buyLimit, hyperparameters = [10,0.7,0.5,20]):
+    popSize = hyperparameters[0]  # 10 Population size -> How many versions of parameters will be created in each generation
+    recombinationValue = hyperparameters[1] # 0.7
+    mutationValue = hyperparameters[2] # 0.5 Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
+    gen = hyperparameters[3]  # 20 Number of generation/stopping condition -> Decide how many iterations should be considered.     
     bounds = [(0,2),(1,buyLimit),(1,100),] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
 
     # Initialise Population and randomly pick values for the parameters
     population = initPopulation(popSize, bounds)
+    
+    # Initialise Lists for keeping track of results
+    best_solution = []
+    average_solution = []
      # Go through each generation
     for i in range(1,gen+1):
         print('GENERATION:',i)
@@ -138,8 +142,10 @@ def optimize(buyLimit):
         print('> GENERATION AVERAGE:',gen_avg)
         print('> GENERATION BEST:',gen_best)
         print('> BEST SOLUTION:',gen_sol,'\n')
+        best_solution.append(gen_best)
+        average_solution.append(gen_avg)
     print(gen_sol)
-    return gen_sol
+    return (gen_sol, best_solution, average_solution)
 
 # Ensure that new values obtained through mutation are within the bounds of the parameters
 def checkBounds(solutions, bounds):
@@ -278,14 +284,14 @@ def trade(parameters, buyLimit = 720):
 
 '''Three Key Functions'''
 # Generate optimal parameters.
-buyLimit = 350
-tradeParameters = optimize(buyLimit)
-print(numpy.round(tradeParameters))
+#buyLimit = 350
+#tradeParameters = optimize(buyLimit)
+#print(numpy.round(tradeParameters))
 # Run the trade.
-results = trade(tradeParameters, buyLimit)
+#results = trade(tradeParameters, buyLimit)
 # Test performance of optimization.
-successRate = evaluate(results, buyLimit)
-print(f"Success Rate: {successRate}")
+#successRate = evaluate(results, buyLimit)
+#print(f"Success Rate: {successRate}")
 
 #print(trade([1,20,2], buyLimit))
 # Report results.
