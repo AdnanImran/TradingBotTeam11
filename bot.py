@@ -11,7 +11,32 @@ from ta.trend import SMAIndicator, EMAIndicator
 #Sets up data & variables
 exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
-df = pd.DataFrame(bitcoin_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+
+# split ratio in range (0,1]. default = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against etherium
+split_ratio = 1
+test_at_start = False  # Should test data be start or end of 2-year period?
+
+split = round(split_ratio*720)
+
+if split_ratio == 1:
+    print("Forward testing against etherium")
+else:
+    print(f"Split: {round(split_ratio*100)}% training, {round((1-split_ratio)*100)}% testing")
+
+# Testing data at start of period
+if test_at_start:
+    df_train = pd.DataFrame(bitcoin_data[720-split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    df_test = pd.DataFrame(bitcoin_data[:720-split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+
+# Testing data at end of period
+else:
+    df_train = pd.DataFrame(bitcoin_data[:split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    df_test = pd.DataFrame(bitcoin_data[split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+
+
+# Assign df to training dataframe initially
+df = df_train 
+
 bb_indicator = BollingerBands(df['close'],window=5)
 
 #Adds upper band to dataframe
@@ -45,7 +70,7 @@ def optimize(buyLimit, hyperparameters = [10,0.7,0.5,20]):
     recombinationValue = hyperparameters[1] # 0.7
     mutationValue = hyperparameters[2] # 0.5 Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
     gen = hyperparameters[3]  # 20 Number of generation/stopping condition -> Decide how many iterations should be considered.     
-    bounds = [(0,2),(1,buyLimit),(1,100),] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
+    bounds = [(0,2),(1,buyLimit),(1,100),(0,3)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
 
     # Initialise Population and randomly pick values for the parameters
     population = initPopulation(popSize, bounds)
@@ -184,7 +209,7 @@ def initPopulation(popSize, bounds):
 def evaluate(results, buyLimit):
     #Compares optimized paramters against default parameters for bollinger bands
     #Default values 20 periods, 2 S.D.
-    baseline=trade([1,20,2], buyLimit)
+    baseline=trade([1,20,2,2], buyLimit)
     print(f"Baseline: {baseline}")
     print(f"Results: {results}")
     successRate = ((results/baseline)-1)*100
@@ -239,6 +264,7 @@ def trade(parameters, buyLimit = 720):
     eval_df["simplified_timestamp"] = df["simplified_timestamp"]
     BOLLINGER_BANDS_WINDOW = round(parameters[1])
     TRIGGER_WINDOW_SIZE = round(parameters[2])
+    BOLLINGER_BANDS_WINDOW_DEV = round(parameters[3])
     #FIND TRIGGER INDICATOR
     if round(parameters[0]) == 0: #SMA
         eval_df["Indicator"] = SMAIndicator(df['close'],window=TRIGGER_WINDOW_SIZE).sma_indicator()
@@ -248,7 +274,7 @@ def trade(parameters, buyLimit = 720):
         eval_df["Indicator"] = EMAIndicator(df['close'], window = TRIGGER_WINDOW_SIZE).ema_indicator()
     
     #BOLLINGER BANDS
-    bands = BollingerBands(df['close'],window=BOLLINGER_BANDS_WINDOW)
+    bands = BollingerBands(df['close'],window=BOLLINGER_BANDS_WINDOW, window_dev=BOLLINGER_BANDS_WINDOW_DEV)
     eval_df["upper"] = bands.bollinger_hband()
     eval_df["lower"] = bands.bollinger_lband()
     #print( "Dataframe created")
@@ -302,3 +328,53 @@ def trade(parameters, buyLimit = 720):
     #print("Trading bot performed " & abs(successRate) & "% poorer than the __chosen baseline__. Output was not successfully optimized.")
 #else:
     #print("Trading bot's performance matched the __chosen baseline__. Output was not successfully optimized.")
+
+
+# FORWARD TESTING
+
+# Only forward test if data is split
+if split_ratio != 1:
+    df = df_test # Reassign df to test dataframe
+
+# Test against etherium data
+else:
+    eth_data = exchange.fetch_ohlcv('ETH/AUD', timeframe='1d', limit=720)
+    df = pd.DataFrame(eth_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+
+
+# Indicator initialisation code copied from above (maybe put in a function)
+bb_indicator = BollingerBands(df['close'],window=5)
+
+#Adds upper band to dataframe
+df['upper_band'] = bb_indicator.bollinger_hband()
+
+#Adds lower band to dataframe 
+df['lower_band'] = bb_indicator.bollinger_lband()
+
+#Adds smooth moving average to dataframe
+df['smooth moving_average']=bb_indicator.bollinger_mavg()
+
+#Adds Exponential Moving Avergae to dataframe
+df['EMA'] = EMAIndicator(df['close'], window = 5).ema_indicator()
+
+#Adds average true range indicator to dataframe
+atr_indicator = AverageTrueRange(df['high'], df['low'], df['close'])
+df['atr'] = atr_indicator.average_true_range()
+
+#Adds Simple Moving Average to the dataframe
+df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
+
+#Simplifies the timestamp to be easier to use with triggers
+df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+
+#Simplifies the timestamp to be easier to use with triggers
+df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+
+
+# Run trade with optimized parameters
+results = trade(tradeParameters)
+print("Test data results: ", results)
+
+# Evalaute trade success
+successRate = evaluate(results,buyLimit)
+print("Test data success rate: ", successRate)
