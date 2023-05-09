@@ -70,7 +70,7 @@ def optimize(buyLimit):
     recombinationValue = 0.7
     mutationValue = 0.5 #Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
     gen = 20  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
-    bounds = [(0,2),(1,buyLimit),(1,100),] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
+    bounds = [(0,2),(1,buyLimit),(1,100),(0,3)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
 
     # Initialise Population and randomly pick values for the parameters
     population = initPopulation(popSize, bounds)
@@ -162,7 +162,7 @@ def optimize(buyLimit):
 
         print('> GENERATION AVERAGE:',gen_avg)
         print('> GENERATION BEST:',gen_best)
-        print('> BEST SOLUTION:',gen_sol,'\n')
+        print('> BEST SOLUTION:',numpy.round(gen_sol),'\n')
     print(gen_sol)
     return gen_sol
 
@@ -203,7 +203,7 @@ def initPopulation(popSize, bounds):
 def evaluate(results, buyLimit):
     #Compares optimized paramters against default parameters for bollinger bands
     #Default values 20 periods, 2 S.D.
-    baseline=trade([1,20,2], buyLimit)
+    baseline=trade([1,20,2,2], buyLimit)
     print(f"Baseline: {baseline}")
     print(f"Results: {results}")
     successRate = ((results/baseline)-1)*100
@@ -258,6 +258,7 @@ def trade(parameters, buyLimit = 720):
     eval_df["simplified_timestamp"] = df["simplified_timestamp"]
     BOLLINGER_BANDS_WINDOW = round(parameters[1])
     TRIGGER_WINDOW_SIZE = round(parameters[2])
+    BOLLINGER_BANDS_WINDOW_DEV = round(parameters[3])
     #FIND TRIGGER INDICATOR
     if round(parameters[0]) == 0: #SMA
         eval_df["Indicator"] = SMAIndicator(df['close'],window=TRIGGER_WINDOW_SIZE).sma_indicator()
@@ -267,7 +268,7 @@ def trade(parameters, buyLimit = 720):
         eval_df["Indicator"] = EMAIndicator(df['close'], window = TRIGGER_WINDOW_SIZE).ema_indicator()
     
     #BOLLINGER BANDS
-    bands = BollingerBands(df['close'],window=BOLLINGER_BANDS_WINDOW)
+    bands = BollingerBands(df['close'],window=BOLLINGER_BANDS_WINDOW, window_dev=BOLLINGER_BANDS_WINDOW_DEV)
     eval_df["upper"] = bands.bollinger_hband()
     eval_df["lower"] = bands.bollinger_lband()
     #print( "Dataframe created")
