@@ -11,12 +11,16 @@ from ta.trend import SMAIndicator, EMAIndicator
 exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 
-# Training and testing data split 80/20
-split_ratio = 0.8
+# Default split ratio = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against etherium
+split_ratio = 1
 test_at_start = False  # Should test data be start or end of 2-year period?
 
 split = round(split_ratio*720)
-print(f"Split: {round(split_ratio*100)}% training, {round((1-split_ratio)*100)}% testing")
+
+if split_ratio == 1:
+    print("Forward testing against etherium")
+else:
+    print(f"Split: {round(split_ratio*100)}% training, {round((1-split_ratio)*100)}% testing")
 
 # Testing data at start of period
 if test_at_start:
@@ -302,44 +306,48 @@ print(successRate)
 # FORWARD TESTING
 
 # Only forward test if data is split
-if split != 720:
+if split_ratio != 1:
+    df = df_test # Reassign df to test dataframe
 
-    # Reassign df to test dataframe
-    df = df_test 
-
-    # Indicator initialisation code copied from above (maybe put in a function)
-    bb_indicator = BollingerBands(df['close'],window=5)
-
-    #Adds upper band to dataframe
-    df['upper_band'] = bb_indicator.bollinger_hband()
-
-    #Adds lower band to dataframe 
-    df['lower_band'] = bb_indicator.bollinger_lband()
-
-    #Adds smooth moving average to dataframe
-    df['smooth moving_average']=bb_indicator.bollinger_mavg()
-
-    #Adds Exponential Moving Avergae to dataframe
-    df['EMA'] = EMAIndicator(df['close'], window = 5).ema_indicator()
-
-    #Adds average true range indicator to dataframe
-    atr_indicator = AverageTrueRange(df['high'], df['low'], df['close'])
-    df['atr'] = atr_indicator.average_true_range()
-
-    #Adds Simple Moving Average to the dataframe
-    df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
-
-    #Simplifies the timestamp to be easier to use with triggers
-    df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
-
-    #Simplifies the timestamp to be easier to use with triggers
-    df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+# Test against etherium data
+else:
+    eth_data = exchange.fetch_ohlcv('ETH/AUD', timeframe='1d', limit=720)
+    df = pd.DataFrame(eth_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 
 
-    # # Run trade with optimized parameters
-    results = trade(tradeParameters)
-    print("Test data results: ", results)
+# Indicator initialisation code copied from above (maybe put in a function)
+bb_indicator = BollingerBands(df['close'],window=5)
 
-    # # Evalaute trade success
-    successRate = evaluate(results)
-    print("Test data success rate: ", successRate)
+#Adds upper band to dataframe
+df['upper_band'] = bb_indicator.bollinger_hband()
+
+#Adds lower band to dataframe 
+df['lower_band'] = bb_indicator.bollinger_lband()
+
+#Adds smooth moving average to dataframe
+df['smooth moving_average']=bb_indicator.bollinger_mavg()
+
+#Adds Exponential Moving Avergae to dataframe
+df['EMA'] = EMAIndicator(df['close'], window = 5).ema_indicator()
+
+#Adds average true range indicator to dataframe
+atr_indicator = AverageTrueRange(df['high'], df['low'], df['close'])
+df['atr'] = atr_indicator.average_true_range()
+
+#Adds Simple Moving Average to the dataframe
+df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
+
+#Simplifies the timestamp to be easier to use with triggers
+df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+
+#Simplifies the timestamp to be easier to use with triggers
+df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+
+
+# Run trade with optimized parameters
+results = trade(tradeParameters)
+print("Test data results: ", results)
+
+# Evalaute trade success
+successRate = evaluate(results)
+print("Test data success rate: ", successRate)
