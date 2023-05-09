@@ -175,10 +175,10 @@ def initPopulation(popSize, bounds):
 # Tests the performance using backtesting the optimization algorithm. 
 #NOTE:We could also split the data and do futuretesting. > Maybe it would be good to do this in a separate method.
 
-def evaluate(results):
+def evaluate(results, buyLimit):
     #Compares optimized paramters against default parameters for bollinger bands
     #Default values 20 periods, 2 S.D.
-    baseline=trade([1,20,2])
+    baseline=trade([1,20,2], buyLimit)
     successRate = ((results/baseline)-1)*100
     return successRate
 
@@ -257,16 +257,18 @@ def trade(parameters, buyLimit = 720):
                 bitcoin += money / df['close'].loc[row]
                 money = 0
                 counter = 0
-        elif buyTrigger(row, eval_df):
-            bitcoin += money / df['close'].loc[row]
-            money = 0
+        elif bitcoin == 0:
+            if buyTrigger(row, eval_df):
+                bitcoin += money / df['close'].loc[row]
+                money = 0 
+        elif money == 0:
+            if sellTrigger(row, eval_df):
+                money += bitcoin * df['close'].loc[row]
+                bitcoin = 0
         elif row == len(df)-1:
             money += bitcoin * df['close'].loc[row]
-        elif sellTrigger(row, eval_df):
-            money += bitcoin * df['close'].loc[row]
-            bitcoin = 0
         counter += 1
-        #print(row, "Money:", money, "Bitcoin:", bitcoin)
+        print(row, "Money:", money, "Bitcoin:", bitcoin)
     print("End Train")
     return money
 
@@ -274,12 +276,13 @@ def trade(parameters, buyLimit = 720):
 
 '''Three Key Functions'''
 # Generate optimal parameters.
-tradeParameters = optimize(30)
+buyLimit = 30
+tradeParameters = optimize(buyLimit)
 print(tradeParameters)
 # Run the trade.
 results = trade(tradeParameters)
 # Test performance of optimization.
-successRate = evaluate(results)
+successRate = evaluate(results, buyLimit)
 print(successRate)
 # Report results.
 #print("Final value: $" & results)
