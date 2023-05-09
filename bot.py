@@ -11,9 +11,9 @@ from ta.trend import SMAIndicator, EMAIndicator
 exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 
-# Default split ratio = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against etherium
+# split ratio in range (0,1]. default = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against etherium
 split_ratio = 1
-test_at_start = False  # Should test data be start or end of 2-year period?
+test_at_start = True  # Should test data be start or end of 2-year period?
 
 split = round(split_ratio*720)
 
@@ -24,13 +24,13 @@ else:
 
 # Testing data at start of period
 if test_at_start:
-    df_train = pd.DataFrame(bitcoin_data[720-split-1:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-    df_test = pd.DataFrame(bitcoin_data[:720-split-1], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    df_train = pd.DataFrame(bitcoin_data[720-split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    df_test = pd.DataFrame(bitcoin_data[:720-split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 
 # Testing data at end of period
 else:
-    df_train = pd.DataFrame(bitcoin_data[:split-1], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-    df_test = pd.DataFrame(bitcoin_data[split-1:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    df_train = pd.DataFrame(bitcoin_data[:split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    df_test = pd.DataFrame(bitcoin_data[split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 
 
 # Assign df to training dataframe initially
