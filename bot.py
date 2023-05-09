@@ -369,5 +369,5 @@ results = trade(tradeParameters)
 print("Test data results: ", results)
 
 # Evalaute trade success
-successRate = evaluate(results)
+successRate = evaluate(results,buyLimit)
 print("Test data success rate: ", successRate)
