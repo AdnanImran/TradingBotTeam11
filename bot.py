@@ -43,9 +43,9 @@ df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].lo
 def optimize(buyLimit):
     popSize = 10 #Population size -> How many versions of parameters will be created in each generation
     recombinationValue = 0.7
-    mutationValue = 0.6 #Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
-    gen = 10  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
-    bounds = [(0,1),(1,720),(0,100)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
+    mutationValue = 0.5 #Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
+    gen = 20  #Number of generation/stopping condition -> Decide how many iterations should be considered.     
+    bounds = [(0,2),(1,buyLimit),(1,100),] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
 
     # Initialise Population and randomly pick values for the parameters
     population = initPopulation(popSize, bounds)
@@ -149,15 +149,15 @@ def checkBounds(solutions, bounds):
 
         # variable exceedes the minimum boundary
         if solutions[i] < bounds[i][0]:
-            updatedSolutions.append(round(bounds[i][0]))
+            updatedSolutions.append(bounds[i][0])
 
         # variable exceedes the maximum boundary
         if solutions[i] > bounds[i][1]:
-            updatedSolutions.append(round(bounds[i][1]))
+            updatedSolutions.append(bounds[i][1])
 
         # the variable is fine
         if bounds[i][0] <= solutions[i] <= bounds[i][1]:
-            updatedSolutions.append(round(solutions[i]))
+            updatedSolutions.append(solutions[i])
     return updatedSolutions
 
 # Initialise the populationoptimize
@@ -179,6 +179,8 @@ def evaluate(results, buyLimit):
     #Compares optimized paramters against default parameters for bollinger bands
     #Default values 20 periods, 2 S.D.
     baseline=trade([1,20,2], buyLimit)
+    print(f"Baseline: {baseline}")
+    print(f"Results: {results}")
     successRate = ((results/baseline)-1)*100
     return successRate
 
@@ -226,7 +228,7 @@ def sell(timestamp, df):
 # PARAMETERS = [ TRIGGER_INDICATOR (SMA=0, CLOSE=1, EMA=2), BOLLINGER_BANDS_WINDOW, TRIGGER_WINDOW_SIZE ] 
 def trade(parameters, buyLimit = 720):
     #initialise temp dataframe
-    print("Start Trade")
+    #print("Start Trade")
     eval_df = pd.DataFrame()
     eval_df["simplified_timestamp"] = df["simplified_timestamp"]
     BOLLINGER_BANDS_WINDOW = round(parameters[1])
@@ -243,7 +245,7 @@ def trade(parameters, buyLimit = 720):
     bands = BollingerBands(df['close'],window=BOLLINGER_BANDS_WINDOW)
     eval_df["upper"] = bands.bollinger_hband()
     eval_df["lower"] = bands.bollinger_lband()
-    print( "Dataframe created")
+    #print( "Dataframe created")
     counter = 0
     money = 100
     bitcoin = 0
@@ -265,25 +267,27 @@ def trade(parameters, buyLimit = 720):
             if sellTrigger(row, eval_df):
                 money += bitcoin * df['close'].loc[row]
                 bitcoin = 0
-        elif row == len(df)-1:
+        if row == len(df)-1:
             money += bitcoin * df['close'].loc[row]
         counter += 1
-        print(row, "Money:", money, "Bitcoin:", bitcoin)
-    print("End Train")
+        #print(row, "Money:", money, "Bitcoin:", bitcoin)
+    #print("End Train")
     return money
 
 
 
 '''Three Key Functions'''
 # Generate optimal parameters.
-buyLimit = 30
+buyLimit = 350
 tradeParameters = optimize(buyLimit)
-print(tradeParameters)
+print(numpy.round(tradeParameters))
 # Run the trade.
-results = trade(tradeParameters)
+results = trade(tradeParameters, buyLimit)
 # Test performance of optimization.
 successRate = evaluate(results, buyLimit)
-print(successRate)
+print(f"Success Rate: {successRate}")
+
+#print(trade([1,20,2], buyLimit))
 # Report results.
 #print("Final value: $" & results)
 #if successRate > 0:
