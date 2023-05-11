@@ -49,7 +49,7 @@ def hyperList(finals, param):
         
     return values
             
-def loadResults(filename):
+def loadResults(filename='all_final_results.txt'):
     f = open(filename)
     r = f.read()
     r = r.replace('\'', '"')
@@ -63,7 +63,13 @@ recombinationValues = [0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 mutationValues = [0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 gen = 10
 
-def 
+def getMeans(res, param, function, func_name):
+    h = hyperList(res, param)
+    table = [[param, func_name]]
+    for key in h:
+        table.append([key, function(h[key])])
+    print(tabulate.tabulate(table))
+    
 '''
 counter = 1
 finals = {}
