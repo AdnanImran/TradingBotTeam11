@@ -1,6 +1,10 @@
 import bot
 import matplotlib.pyplot as plt
 import os
+import json
+import numpy as np
+import tabulate
+
 
 def getResults(buyLimit, hyperparams): #hyperparams (popSize, recombinationValue, mutationValue, gen)
     return bot.optimize(buyLimit, hyperparams)
@@ -15,23 +19,60 @@ def plotResults(results,hyperparams):
     plt.ylabel("Final Money")
     plt.title = name
     plt.savefig(os.path.join("graphs", name))
+    plt.clf()
     
 def HypertoString(hyperparams):
     s = str(hyperparams[0]) +","+ str(hyperparams[1]) + ","+ str(hyperparams[2]) +","+ str(hyperparams[3]) +","+ str(hyperparams[4])
     s=s.replace(".", "-")
     return s
 
+def hyperList(finals, param):
+    values = {}
+    if param =="buyLimit":
+        for x in buyLimits:
+            values[x] = []
+    if param =="recombinationValue":
+        for x in recombinationValues:
+            values[x] = []
+    if param =="mutationValue":
+        for x in mutationValues:
+            values[x] = []
+    for key in finals:
+        val = finals[key][1][-1]
+        buyLimit, popSize, recombinationValue, mutationValue, gen = key.split(",")
+        if param == "buyLimit":
+            values[int(buyLimit)].append(val)
+        if param == "recombinationValue":
+            values[float(recombinationValue.replace("-","."))].append(val)
+        if param == "mutationValue":
+            values[float(mutationValue.replace("-","."))].append(val)
+        
+    return values
+            
+def loadResults(filename):
+    f = open(filename)
+    r = f.read()
+    r = r.replace('\'', '"')
+    r = r.replace('(', '[').replace(')',']')
+    d = json.loads(r)
+    return d
+
 buyLimits = [10,30,90,150,360,720]
 popSize = 10
-recombinationValues = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
-mutationValues = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+recombinationValues = [0.2,0.3,0.4,0.5,0.6,0.7,0.8]
+mutationValues = [0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 gen = 10
 
+def 
+'''
 counter = 1
+finals = {}
 for b in buyLimits:
     for r in recombinationValues:
         for m in mutationValues:
             res = getResults(b, (popSize, r, m, gen))
             plotResults(res, (b, popSize, r, m, gen))
             print(str(counter) + " out of " + str(len(buyLimits) * len(recombinationValues) * len(mutationValues)))
+            finals[HypertoString((b, popSize, r, m, gen))] = res
             counter+=1
+'''

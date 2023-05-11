@@ -257,7 +257,7 @@ def sell(timestamp, df):
     return False
 
 # PARAMETERS = [ TRIGGER_INDICATOR (SMA=0, CLOSE=1, EMA=2), BOLLINGER_BANDS_WINDOW, TRIGGER_WINDOW_SIZE ] 
-def trade(parameters, buyLimit = 720):
+def trade(parameters, buyLimit = 720,verbose=False):
     #initialise temp dataframe
     #print("Start Trade")
     eval_df = pd.DataFrame()
@@ -302,7 +302,8 @@ def trade(parameters, buyLimit = 720):
         if row == len(df)-1:
             money += bitcoin * df['close'].loc[row]
         counter += 1
-        #print(row, "Money:", money, "Bitcoin:", bitcoin)
+        if verbose:
+            print(row, "Money:", money, "Bitcoin:", bitcoin)
     #print("End Train")
     return money
 
@@ -372,9 +373,9 @@ df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].lo
 
 
 # Run trade with optimized parameters
-results = trade(tradeParameters)
-print("Test data results: ", results)
+#results = trade(tradeParameters)
+#print("Test data results: ", results)
 
 # Evalaute trade success
-successRate = evaluate(results,buyLimit)
-print("Test data success rate: ", successRate)
+#successRate = evaluate(results,buyLimit)
+#print("Test data success rate: ", successRate)
