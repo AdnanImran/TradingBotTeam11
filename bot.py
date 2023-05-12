@@ -13,7 +13,7 @@ exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 
 # split ratio in range (0,1]. default = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against etherium
-split_ratio = 1
+split_ratio = 0.8
 test_at_start = False  # Should test data be start or end of 2-year period?
 
 split = round(split_ratio*720)

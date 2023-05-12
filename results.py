@@ -13,7 +13,8 @@ def plotResults(results,hyperparams):
     name = HypertoString(hyperparams)
     plt.plot(range(len(results[1])),results[1])
     plt.plot(range(len(results[2])),results[2])
-    plt.legend(("Best Solution", "Average Solution"))
+    plt.plot(range(len(results[1])), [bot.trade([1,20,2,2], hyperparams[0])]*len(results[1]), linestyle='dotted')
+    plt.legend(("Best Solution", "Average Solution", "Evaluation Target"))
     plt.figtext(0.8,0.8,"{:.2f}".format(results[1][-1]))
     plt.xlabel("Generations")
     plt.ylabel("Final Money")
@@ -49,6 +50,12 @@ def hyperList(finals, param):
         
     return values
             
+def evalScores(res):
+    for key in res:
+        val = bot.evaluate(res[key][1][-1], int(key.split(",")[0]))
+        eva.append(val)
+    return eva
+
 def loadResults(filename='all_final_results.txt'):
     f = open(filename)
     r = f.read()
@@ -58,7 +65,7 @@ def loadResults(filename='all_final_results.txt'):
     return d
 
 buyLimits = [10,30,90,150,360,720]
-popSize = 10
+popSize = 5
 recombinationValues = [0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 mutationValues = [0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 gen = 10
