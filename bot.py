@@ -307,8 +307,9 @@ def forward_test(tradeParameters, buyLimit, test_data, df_previous):
     df = df_previous
 
 
-
+    
 ## BEGIN BOT OPERATION
+
 
 #Sets up data & variables
 exchange = ccxt.kraken()
