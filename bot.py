@@ -12,14 +12,14 @@ from ta.trend import SMAIndicator, EMAIndicator
 exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 
-# split ratio in range (0,1]. default = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against etherium
+# split ratio in range (0,1]. default = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against ethereum
 split_ratio = 1
 test_at_start = False  # Should test data be start or end of 2-year period?
 
 split = round(split_ratio*720)
 
 if split_ratio == 1:
-    print("Forward testing against etherium")
+    print("Forward testing against ethereum")
 else:
     print(f"Split: {round(split_ratio*100)}% training, {round((1-split_ratio)*100)}% testing")
 
@@ -337,7 +337,7 @@ def trade(parameters, buyLimit = 720,verbose=False):
 if split_ratio != 1:
     df = df_test # Reassign df to test dataframe
 
-# Test against etherium data
+# Test against ethereum data
 else:
     eth_data = exchange.fetch_ohlcv('ETH/AUD', timeframe='1d', limit=720)
     df = pd.DataFrame(eth_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
