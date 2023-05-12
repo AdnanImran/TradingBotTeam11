@@ -4,65 +4,147 @@ import pandas as pd
 import random
 import math
 import numpy
-#Bollinger Bands help identify sharp, short-term price movements and potential entry and exit points.
+
 from ta.volatility import BollingerBands, AverageTrueRange
 from ta.trend import SMAIndicator, EMAIndicator
 
-#Sets up data & variables
-exchange = ccxt.kraken()
-bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 
-# split ratio in range (0,1]. default = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against etherium
-split_ratio = 1
-test_at_start = False 
+# Initialises indicators for an input dataframe
+def initialise_indicators(df):
 
-split = round(split_ratio*720)
+    bb_indicator = BollingerBands(df['close'],window=5)
 
-if split_ratio == 1:
-    print("Forward testing against etherium")
-else:
-    print(f"Split: {round(split_ratio*100)}% training, {round((1-split_ratio)*100)}% testing")
+    #Adds upper band to dataframe
+    df['upper_band'] = bb_indicator.bollinger_hband()
 
-# Testing data at start of period
-if test_at_start:
-    df_train = pd.DataFrame(bitcoin_data[720-split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-    df_test = pd.DataFrame(bitcoin_data[:720-split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    #Adds lower band to dataframe 
+    df['lower_band'] = bb_indicator.bollinger_lband()
 
-# Testing data at end of period
-else:
-    df_train = pd.DataFrame(bitcoin_data[:split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-    df_test = pd.DataFrame(bitcoin_data[split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    #Adds smooth moving average to dataframe
+    df['smooth moving_average']=bb_indicator.bollinger_mavg()
+
+    #Adds Exponential Moving Avergae to dataframe
+    df['EMA'] = EMAIndicator(df['close'], window = 5).ema_indicator()
+
+    #Adds average true range indicator to dataframe
+    atr_indicator = AverageTrueRange(df['high'], df['low'], df['close'])
+    df['atr'] = atr_indicator.average_true_range()
+
+    #Adds Simple Moving Average to the dataframe
+    df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
+
+    #Simplifies the timestamp to be easier to use with triggers
+    df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
 
 
-# Assign df to training dataframe initially
-df = df_train 
 
-bb_indicator = BollingerBands(df['close'],window=5)
+# Sends buy signal if indicator condition is satisfied
+def buy(timestamp, df):
+    trigger = df[df['simplified_timestamp'] == timestamp]["Indicator"][timestamp]
+    lower = df[df['simplified_timestamp'] == timestamp]['lower'][timestamp]
+    if trigger < lower:
+        return True
+    
+    return False
 
-#Adds upper band to dataframe
-df['upper_band'] = bb_indicator.bollinger_hband()
+# Sends sell signal if indicator condition is satisfied
+def sell(timestamp, df):
+    upper = df[df['simplified_timestamp'] == timestamp]['upper'][timestamp]
+    trigger = df[df['simplified_timestamp'] == timestamp]["Indicator"][timestamp]
+    if upper < trigger:
+        return True
 
-#Adds lower band to dataframe 
-df['lower_band'] = bb_indicator.bollinger_lband()
+    return False
 
-#Adds smooth moving average to dataframe
-df['smooth moving_average']=bb_indicator.bollinger_mavg()
+#Buy Trigger to return true or false if we should buy on a particular timestamp according to our parameters
+def buyTrigger(timestamp, parameters):
+    return buy(timestamp, parameters) and (not buy(timestamp-1, parameters)) and (not (sell(timestamp, parameters) and not sell(timestamp-1, parameters)))
 
-#Adds Exponential Moving Avergae to dataframe
-df['EMA'] = EMAIndicator(df['close'], window = 5).ema_indicator()
+#Sell Trigger to return true or false if we should sell on a particular timestamp according to our parameters
+def sellTrigger(timestamp, parameters):
+    return sell(timestamp, parameters) and (not sell(timestamp-1, parameters)) and (not (buy(timestamp, parameters) and not buy(timestamp-1, parameters)))
 
-#Adds average true range indicator to dataframe
-atr_indicator = AverageTrueRange(df['high'], df['low'], df['close'])
-df['atr'] = atr_indicator.average_true_range()
+# Perform trades through the dataframe according to parameters
+#   PARAMETERS = [ TRIGGER_INDICATOR (SMA=0, CLOSE=1, EMA=2), BOLLINGER_BANDS_WINDOW, TRIGGER_WINDOW_SIZE ]
+def trade(parameters, buyLimit = 720,verbose=False):
+    #initialise temp dataframe
+    eval_df = pd.DataFrame()
+    eval_df["simplified_timestamp"] = df["simplified_timestamp"]
+    BOLLINGER_BANDS_WINDOW = round(parameters[1])
+    TRIGGER_WINDOW_SIZE = round(parameters[2])
+    BOLLINGER_BANDS_WINDOW_DEV = round(parameters[3])
+    #FIND TRIGGER INDICATOR
+    if round(parameters[0]) == 0: #SMA
+        eval_df["Indicator"] = SMAIndicator(df['close'],window=TRIGGER_WINDOW_SIZE).sma_indicator()
+    elif round(parameters[0]) == 1: #CLOSE
+        eval_df["Indicator"] = df['close']
+    elif round(parameters[0]) == 2: #EMA
+        eval_df["Indicator"] = EMAIndicator(df['close'], window = TRIGGER_WINDOW_SIZE).ema_indicator()
+    
+    #BOLLINGER BANDS
+    bands = BollingerBands(df['close'],window=BOLLINGER_BANDS_WINDOW, window_dev=BOLLINGER_BANDS_WINDOW_DEV)
+    eval_df["upper"] = bands.bollinger_hband()
+    eval_df["lower"] = bands.bollinger_lband()
 
-#Adds Simple Moving Average to the dataframe
-df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
+    counter = 0
+    money = 100
+    bitcoin = 0
+    for row in range(len(df)):
+        if counter == buyLimit:
+            if money == 0:
+                money += bitcoin * df['close'].loc[row]
+                bitcoin = 0
+                counter = 0
+            else:
+                bitcoin += money / df['close'].loc[row]
+                money = 0
+                counter = 0
+        elif bitcoin == 0:
+            if buyTrigger(row, eval_df):
+                bitcoin += money / df['close'].loc[row]
+                money = 0 
+        elif money == 0:
+            if sellTrigger(row, eval_df):
+                money += bitcoin * df['close'].loc[row]
+                bitcoin = 0
+        if row == len(df)-1:
+            money += bitcoin * df['close'].loc[row]
+        counter += 1
+        if verbose:
+            print(row, "Money:", money, "Bitcoin:", bitcoin)
+    return money
 
-#Simplifies the timestamp to be easier to use with triggers
-df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
 
-#Simplifies the timestamp to be easier to use with triggers
-df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
+# Initialise the population
+# returns an array of parameter values for a solution.
+# e.g. population = [ [0,1], [2,5] ]
+def initPopulation(popSize, bounds):
+    population = []
+    for i in range(0,popSize):
+        indv = []
+        for j in range(len(bounds)):
+            indv.append(random.uniform(bounds[j][0],bounds[j][1]))
+        population.append(indv)
+    return population
+
+# Ensure that new values obtained through mutation are within the bounds of the parameters
+def checkBounds(solutions, bounds):
+    updatedSolutions = []
+    # cycle through each variable in vector 
+    for i in range(len(solutions)):
+
+        # variable exceedes the minimum boundary
+        if solutions[i] < bounds[i][0]:
+            updatedSolutions.append(bounds[i][0])
+
+        # variable exceedes the maximum boundary
+        if solutions[i] > bounds[i][1]:
+            updatedSolutions.append(bounds[i][1])
+
+        # the variable is fine
+        if bounds[i][0] <= solutions[i] <= bounds[i][1]:
+            updatedSolutions.append(solutions[i])
+    return updatedSolutions
 
 #Optimization Algorithm
 def optimize(buyLimit, hyperparameters = [10,0.7,0.5,20]):
@@ -170,40 +252,10 @@ def optimize(buyLimit, hyperparameters = [10,0.7,0.5,20]):
     print(genSol)
     return (genSol, bestSolution, averageSolution)
 
-# Ensure that new values obtained through mutation are within the bounds of the parameters
-def checkBounds(solutions, bounds):
-    updatedSolutions = []
-    # cycle through each variable in vector 
-    for i in range(len(solutions)):
-
-        # variable exceedes the minimum boundary
-        if solutions[i] < bounds[i][0]:
-            updatedSolutions.append(bounds[i][0])
-
-        # variable exceedes the maximum boundary
-        if solutions[i] > bounds[i][1]:
-            updatedSolutions.append(bounds[i][1])
-
-        # the variable is fine
-        if bounds[i][0] <= solutions[i] <= bounds[i][1]:
-            updatedSolutions.append(solutions[i])
-    return updatedSolutions
-
-# Initialise the populationoptimize
-# returns an array of parameter values for a solution.
-# e.g. population = [ [0,1], [2,5] ]
-def initPopulation(popSize, bounds):
-    population = []
-    for i in range(0,popSize):
-        indv = []
-        for j in range(len(bounds)):
-            indv.append(random.uniform(bounds[j][0],bounds[j][1]))
-        population.append(indv)
-    return population
 
 # Tests the performance using backtesting the optimization algorithm. 
-#NOTE:We could also split the data and do futuretesting. > Maybe it would be good to do this in a separate method.
 
+# Compare the performance of 
 def evaluate(results, buyLimit):
     #Compares optimized paramters against default parameters for bollinger bands
     #Default values 20 periods, 2 S.D.
@@ -213,99 +265,67 @@ def evaluate(results, buyLimit):
     successRate = ((results/baseline)-1)*100
     return successRate
 
-#Buy Trigger to return true or false if we should buy on a particular timestamp according to our parameters
-def buyTrigger(timestamp, parameters):
-    return buy(timestamp, parameters) and (not buy(timestamp-1, parameters)) and (not (sell(timestamp, parameters) and not sell(timestamp-1, parameters)))
+# Tests input parameter performance with Ethereum
+def test_ethereum(tradeParameters, buyLimit, df_bitcoin):
+    # Fetch ethereum data
+    eth_data = exchange.fetch_ohlcv('ETH/AUD', timeframe='1d', limit=720)
 
-#Sell Trigger to return true or false if we should sell on a particular timestamp according to our parameters
-def sellTrigger(timestamp, parameters):
-    return sell(timestamp, parameters) and (not sell(timestamp-1, parameters)) and (not (buy(timestamp, parameters) and not buy(timestamp-1, parameters)))
+    # Refer to global df variable
+    global df
 
-#BUY AND SELL FUNCTIONS JUST FOR TESTING NOW TO SEE IF TRIGGERS WORK, NEED TO FILL IN WITH ACTUAL ALGORITHM LATER
-def buy(timestamp, df):
-    #PLAYING AROUND WITH EMA AND SMA
-    '''EMA = df[df['simplified_timestamp'] == timestamp]['EMA'][timestamp]
-    SMA = df[df['simplified_timestamp'] == timestamp]['SMA'][timestamp]
-    if math.isnan(EMA) or math.isnan(SMA):
-        return False
-    if EMA > SMA:
-        return True
-    return False'''
-    trigger = df[df['simplified_timestamp'] == timestamp]["Indicator"][timestamp]
-    lower = df[df['simplified_timestamp'] == timestamp]['lower'][timestamp]
-    if trigger < lower:
-        return True
-    return False
+    # Reassign df to ethereum
+    df = pd.DataFrame(eth_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
 
-def sell(timestamp, df):
-    #Testing with EMA and SMA
-    '''EMA = df[df['simplified_timestamp'] == timestamp]['EMA'][timestamp]
-    SMA = df[df['simplified_timestamp'] == timestamp]['SMA'][timestamp]
-    if math.isnan(EMA) or math.isnan(SMA):
-        return False
-    if EMA < SMA:
-        return True
-    return False'''
+    # Initialise indicators for testing dataframe
+    initialise_indicators(df)
 
-    upper = df[df['simplified_timestamp'] == timestamp]['upper'][timestamp]
-    trigger = df[df['simplified_timestamp'] == timestamp]["Indicator"][timestamp]
-    if upper < trigger:
-        return True
+    # Run the trade with optimised parameters
+    results = trade(tradeParameters, buyLimit)
 
-    return False
+    # Test performance of optimization.
+    successRate = evaluate(results, buyLimit)
+    print(f"Success Rate: {successRate}")
 
-# PARAMETERS = [ TRIGGER_INDICATOR (SMA=0, CLOSE=1, EMA=2), BOLLINGER_BANDS_WINDOW, TRIGGER_WINDOW_SIZE ] 
-def trade(parameters, buyLimit = 720,verbose=False):
-    #initialise temp dataframe
-    #print("Start Trade")
-    eval_df = pd.DataFrame()
-    eval_df["simplified_timestamp"] = df["simplified_timestamp"]
-    BOLLINGER_BANDS_WINDOW = round(parameters[1])
-    TRIGGER_WINDOW_SIZE = round(parameters[2])
-    BOLLINGER_BANDS_WINDOW_DEV = round(parameters[3])
-    #FIND TRIGGER INDICATOR
-    if round(parameters[0]) == 0: #SMA
-        eval_df["Indicator"] = SMAIndicator(df['close'],window=TRIGGER_WINDOW_SIZE).sma_indicator()
-    elif round(parameters[0]) == 1: #CLOSE
-        eval_df["Indicator"] = df['close']
-    elif round(parameters[0]) == 2: #EMA
-        eval_df["Indicator"] = EMAIndicator(df['close'], window = TRIGGER_WINDOW_SIZE).ema_indicator()
-    
-    #BOLLINGER BANDS
-    bands = BollingerBands(df['close'],window=BOLLINGER_BANDS_WINDOW, window_dev=BOLLINGER_BANDS_WINDOW_DEV)
-    eval_df["upper"] = bands.bollinger_hband()
-    eval_df["lower"] = bands.bollinger_lband()
-    #print( "Dataframe created")
-    counter = 0
-    money = 100
-    bitcoin = 0
-    for row in range(len(df)):
-        if counter == buyLimit:
-            if money == 0:
-                money += bitcoin * df['close'].loc[row]
-                bitcoin = 0
-                counter = 0
-            else:
-                bitcoin += money / df['close'].loc[row]
-                money = 0
-                counter = 0
-        elif bitcoin == 0:
-            if buyTrigger(row, eval_df):
-                bitcoin += money / df['close'].loc[row]
-                money = 0 
-        elif money == 0:
-            if sellTrigger(row, eval_df):
-                money += bitcoin * df['close'].loc[row]
-                bitcoin = 0
-        if row == len(df)-1:
-            money += bitcoin * df['close'].loc[row]
-        counter += 1
-        if verbose:
-            print(row, "Money:", money, "Bitcoin:", bitcoin)
-    #print("End Train")
-    return money
+    # Reset dataframe back to bitcoin
+    df = df_bitcoin
 
 
+
+## BEGIN BOT OPERATION
+
+#Sets up data & variables
+exchange = ccxt.kraken()
+bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
+
+# split ratio in range (0,1]. default = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against ethereum
+split_ratio = 1
+test_at_start = False 
+
+split = round(split_ratio*720)
+
+if split_ratio == 1:
+    print("Forward testing against Ethereum")
+else:
+    print(f"Split: {round(split_ratio*100)}% training, {round((1-split_ratio)*100)}% testing")
+
+# Testing data at start of period
+if test_at_start:
+    df_train = pd.DataFrame(bitcoin_data[720-split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    df_test = pd.DataFrame(bitcoin_data[:720-split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+
+# Testing data at end of period
+else:
+    df_train = pd.DataFrame(bitcoin_data[:split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    df_test = pd.DataFrame(bitcoin_data[split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+
+
+# Assign df to training dataframe initially (includes whole 2-year dataframe when split_ratio = 1)
+df = df_train 
+
+# Initialise indicators for training set
+initialise_indicators(df)
+#results = trade([1, 6, 30, 1.2216954864405545],30)
+#evaluate(results, 30)
 
 '''Three Key Functions'''
 # Generate optimal parameters.
@@ -323,49 +343,25 @@ buyLimit = 30
 
 # FORWARD TESTING
 
+# NOTE: need to convert to function as well
 # Only forward test if data is split
 if split_ratio != 1:
     df = df_test # Reassign df to test dataframe
+    initialise_indicators(df)
+    
+    # Run trade with optimized parameters
+    #results = trade(tradeParameters)
+    #print("Test data results: ", results)
 
-# Test against etherium data
+    # Evalaute trade success
+    #successRate = evaluate(results,buyLimit)
+    #print("Test data success rate: ", successRate)
+
+    df = df_train
+    initialise_indicators(df)
+
+
+# Test against ethereum data
 else:
-    eth_data = exchange.fetch_ohlcv('ETH/AUD', timeframe='1d', limit=720)
-    df = pd.DataFrame(eth_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-
-
-# Indicator initialisation code copied from above (maybe put in a function)
-bb_indicator = BollingerBands(df['close'],window=5)
-
-#Adds upper band to dataframe
-df['upper_band'] = bb_indicator.bollinger_hband()
-
-#Adds lower band to dataframe 
-df['lower_band'] = bb_indicator.bollinger_lband()
-
-#Adds smooth moving average to dataframe
-df['smooth moving_average']=bb_indicator.bollinger_mavg()
-
-#Adds Exponential Moving Avergae to dataframe
-df['EMA'] = EMAIndicator(df['close'], window = 5).ema_indicator()
-
-#Adds average true range indicator to dataframe
-atr_indicator = AverageTrueRange(df['high'], df['low'], df['close'])
-df['atr'] = atr_indicator.average_true_range()
-
-#Adds Simple Moving Average to the dataframe
-df['SMA'] = SMAIndicator(df['close'],window=5).sma_indicator()
-
-#Simplifies the timestamp to be easier to use with triggers
-df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
-
-#Simplifies the timestamp to be easier to use with triggers
-df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
-
-
-# Run trade with optimized parameters
-#results = trade(tradeParameters)
-#print("Test data results: ", results)
-
-# Evalaute trade success
-#successRate = evaluate(results,buyLimit)
-#print("Test data success rate: ", successRate)
+    #test_ethereum(tradeParameterse, buyLimit, df_train)
+    pass # placeholder so function can be commented
