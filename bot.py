@@ -37,7 +37,6 @@ def initialise_indicators(df):
     df['simplified_timestamp'] = pd.to_numeric((df['timestamp'] - df['timestamp'].loc[0])  / (df['timestamp'].loc[2] - df['timestamp'].loc[1]), downcast='signed')
 
 
-
 # Sends buy signal if indicator condition is satisfied
 def buy(timestamp, df):
     trigger = df[df['simplified_timestamp'] == timestamp]["Indicator"][timestamp]
@@ -149,7 +148,7 @@ def checkBounds(solutions, bounds):
 #Optimization Algorithm
 def optimize(buyLimit, hyperparameters = [10,0.7,0.5,20]):
     popSize = hyperparameters[0]  # 10 Population size -> How many versions of parameters will be created in each generation
-    recombinationValue = hyperparameters[1] # 0.7
+    recombinationValue = hyperparameters[1] # 0.7 Recombination value -> Probability that an individual will take the mutated version of a parameter 
     mutationValue = hyperparameters[2] # 0.5 Scaling factor ->  Controls the amplification of the difference vector (difference between two randomly selected individuals from the population) used in the mutation step.
     gen = hyperparameters[3]  # 20 Number of generation/stopping condition -> Decide how many iterations should be considered.     
     bounds = [(0,2),(1,buyLimit),(1,100),(0,3)] #Li,Hi – boundary for dimension i -> These boundaries help to constrain the search space of the algorithm.
@@ -253,9 +252,7 @@ def optimize(buyLimit, hyperparameters = [10,0.7,0.5,20]):
     return (genSol, bestSolution, averageSolution)
 
 
-# Tests the performance using backtesting the optimization algorithm. 
-
-# Compare the performance of 
+# Compare trade results to the baseline
 def evaluate(results, buyLimit):
     #Compares optimized paramters against default parameters for bollinger bands
     #Default values 20 periods, 2 S.D.
@@ -265,16 +262,36 @@ def evaluate(results, buyLimit):
     successRate = ((results/baseline)-1)*100
     return successRate
 
-# Tests input parameter performance with Ethereum
-def test_ethereum(tradeParameters, buyLimit, df_bitcoin):
-    # Fetch ethereum data
-    eth_data = exchange.fetch_ohlcv('ETH/AUD', timeframe='1d', limit=720)
+# Splits a dataset and generates training and testing dataframes
+def split_dataset(crypto_data, split_ratio=0.8, test_at_start=False):
+    
+    split = round(split_ratio*720)
+
+    if split_ratio == 1:
+        print("Forward testing against Ethereum")
+    else:
+        print(f"Split: {round(split_ratio*100)}% training, {round((1-split_ratio)*100)}% testing")
+
+    # Testing data at start of period
+    if test_at_start:
+        df_train = pd.DataFrame(crypto_data[720-split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        df_test = pd.DataFrame(crypto_data[:720-split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+
+    # Testing data at end of period
+    else:
+        df_train = pd.DataFrame(crypto_data[:split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        df_test = pd.DataFrame(crypto_data[split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    
+    return df_train, df_test
+
+# Evaluate input parameter performance with test data set
+def forward_test(tradeParameters, buyLimit, test_data, df_previous):
 
     # Refer to global df variable
     global df
 
-    # Reassign df to ethereum
-    df = pd.DataFrame(eth_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+    # Reassign df to test dataframe
+    df = test_data
 
     # Initialise indicators for testing dataframe
     initialise_indicators(df)
@@ -286,8 +303,8 @@ def test_ethereum(tradeParameters, buyLimit, df_bitcoin):
     successRate = evaluate(results, buyLimit)
     print(f"Success Rate: {successRate}")
 
-    # Reset dataframe back to bitcoin
-    df = df_bitcoin
+    # Reset df to previous dataframe
+    df = df_previous
 
 
 
@@ -297,71 +314,44 @@ def test_ethereum(tradeParameters, buyLimit, df_bitcoin):
 exchange = ccxt.kraken()
 bitcoin_data = exchange.fetch_ohlcv('BTC/AUD', timeframe='1d', limit=720)
 
-# split ratio in range (0,1]. default = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against ethereum
+# split ratio in range (0,1]. default = 0.8 (80% training, 20% testing). Set to 1 to test the whole 2 year period against Ethereum
 split_ratio = 1
-test_at_start = False 
 
-split = round(split_ratio*720)
-
-if split_ratio == 1:
-    print("Forward testing against Ethereum")
-else:
-    print(f"Split: {round(split_ratio*100)}% training, {round((1-split_ratio)*100)}% testing")
-
-# Testing data at start of period
-if test_at_start:
-    df_train = pd.DataFrame(bitcoin_data[720-split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-    df_test = pd.DataFrame(bitcoin_data[:720-split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-
-# Testing data at end of period
-else:
-    df_train = pd.DataFrame(bitcoin_data[:split], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-    df_test = pd.DataFrame(bitcoin_data[split:], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-
+# Split dataset into training and testing data
+df_train, df_test = split_dataset(bitcoin_data, split_ratio)
 
 # Assign df to training dataframe initially (includes whole 2-year dataframe when split_ratio = 1)
 df = df_train 
 
 # Initialise indicators for training set
 initialise_indicators(df)
-#results = trade([1, 6, 30, 1.2216954864405545],30)
-#evaluate(results, 30)
 
 '''Three Key Functions'''
 # Generate optimal parameters.
 buyLimit = 30
-#tradeParameters = optimize(buyLimit)
+# tradeParameters = optimize(buyLimit)[0]
 #print(numpy.round(tradeParameters))
 
 # Run the trade.
-#results = trade(tradeParameters, buyLimit)
+# results = trade(tradeParameters, buyLimit)
 
 # Test performance of optimization.
-#successRate = evaluate(results, buyLimit)
-#print(f"Success Rate: {successRate}")
+# successRate = evaluate(results, buyLimit)
+# print(f"Success Rate: {successRate}")
 
 
 # FORWARD TESTING
 
-# NOTE: need to convert to function as well
-# Only forward test if data is split
-if split_ratio != 1:
-    df = df_test # Reassign df to test dataframe
-    initialise_indicators(df)
-    
-    # Run trade with optimized parameters
-    #results = trade(tradeParameters)
-    #print("Test data results: ", results)
-
-    # Evalaute trade success
-    #successRate = evaluate(results,buyLimit)
-    #print("Test data success rate: ", successRate)
-
+# If data is not split, reassign df_test to Ethereum data
+if split_ratio == 1:
+    eth_data = exchange.fetch_ohlcv('ETH/AUD', timeframe='1d', limit=720)
+    df_test = pd.DataFrame(eth_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
     df = df_train
+
+# If data is split: Ensure that df global variable is reset to include the whole 2 year period
+else: 
+    df = pd.DataFrame(bitcoin_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
     initialise_indicators(df)
 
-
-# Test against ethereum data
-else:
-    #test_ethereum(tradeParameterse, buyLimit, df_train)
-    pass # placeholder so function can be commented
+# Forward test optimised parameters against test data
+# forward_test(tradeParameters, buyLimit, df_test, df)
