@@ -1,5 +1,7 @@
 # Trading Bot  [AIGroup11]
 
+Authors:
+
 Georgia Jefferson (23073856)
 
 Timothy Pye (22708266)
@@ -16,7 +18,13 @@ Adnan Imran (22514057)
 ```
 pip3 install -r requirements.txt
 ```
-2.  Lorem ipsum dolor sit amet, consectet
+
+## How to Run
+1. If you are using a terminal use the command
+```
+python bot.py
+```
+The best parameters that were observed from our research would be used as the default values for the hyperparameters
 
 ## Research
 Some articles that might be useful:

@@ -330,15 +330,15 @@ initialise_indicators(df)
 '''Three Key Functions'''
 # Generate optimal parameters.
 buyLimit = 30
-# tradeParameters = optimize(buyLimit)[0]
+tradeParameters = optimize(buyLimit)[0]
 #print(numpy.round(tradeParameters))
 
 # Run the trade.
-# results = trade(tradeParameters, buyLimit)
+results = trade(tradeParameters, buyLimit)
 
 # Test performance of optimization.
-# successRate = evaluate(results, buyLimit)
-# print(f"Success Rate: {successRate}")
+successRate = evaluate(results, buyLimit)
+print(f"Success Rate: {successRate}")
 
 
 # FORWARD TESTING
@@ -355,4 +355,4 @@ else:
     initialise_indicators(df)
 
 # Forward test optimised parameters against test data
-# forward_test(tradeParameters, buyLimit, df_test, df)
+forward_test(tradeParameters, buyLimit, df_test, df)
