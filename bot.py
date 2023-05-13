@@ -335,7 +335,7 @@ def trade(parameters, buyLimit = 720,verbose=False):
 
 # Only forward test if data is split
 if split_ratio != 1:
-    df = df_test # Reassign df to test dataframe
+    df = pd.DataFrame(bitcoin_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume']) # Reassign df to test dataframe
 
 # Test against etherium data
 else:

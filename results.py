@@ -77,7 +77,7 @@ def getMeans(res, param, function, func_name):
         table.append([key, function(h[key])])
     print(tabulate.tabulate(table))
     
-'''
+
 counter = 1
 finals = {}
 for b in buyLimits:
@@ -88,4 +88,3 @@ for b in buyLimits:
             print(str(counter) + " out of " + str(len(buyLimits) * len(recombinationValues) * len(mutationValues)))
             finals[HypertoString((b, popSize, r, m, gen))] = res
             counter+=1
-'''
