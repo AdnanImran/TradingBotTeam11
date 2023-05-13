@@ -16,13 +16,8 @@ Adnan Imran (22514057)
 ```
 pip3 install -r requirements.txt
 ```
-2.  Lorem ipsum dolor sit amet, consectet
 
 ## Research
-Some articles that might be useful:
-- "An Automated Trading System with Multi-indicator Fusion Based on D-S Evidence Theory in Forex Market" by Liu, Zhihong ; Xiao, Deyun (2009)
-- "Ensemble learning of rule-based evolutionary algorithm using multi layer perceptron for stock trading models" by Mabu, Shingo ; Obayashi, Masanao ; Kuremoto, Takashi (2014)
-
 ## Potential Algorithms
 
 ### 1. Genetic Algorithm
@@ -47,7 +42,7 @@ General framework of the algorithm
 - Can get stuck at a local optimum point.
 
 #### 1.2 Genetic Further Reading
-- "An Intelligent Model for Pairs Trading Using Genetic Algorithms" by Chien-Feng Huang,1 Chi-Jen Hsu,1 Chi-Chung Chen,2 Bao Rong Chang,1 and Chen-An Li (2015) --> *Very similar to approach we're taking, and describes success of genetic algorithms for this type of problem.*
+- "An Intelligent Model for Pairs Trading Using Genetic Algorithms" by Chien-Feng Huang,1 Chi-Jen Hsu,1 Chi-Chung Chen,2 Bao Rong Chang,1 and Chen-An Li (2015) --> *Very similar to the problem we're examining, and describes success of genetic algorithms for this type of problem.*
 - "Incorporating Markov decision process on genetic algorithms to formulate trading strategies for stock markets" --> *Explains how this approach is optimal for helping investors solve timing problems.*
 
 ### 2. Swarm Algorithm (Specifically Particle Swarm Optimisation (PSO))
@@ -81,7 +76,7 @@ More specifically updating the velocity and position of each particle based on i
 #### 2.2 Swarm Further Reading
 - "A constrained portfolio trading system using particle swarm algorithm and recurrent reinforcement learning" by Saud Almahdi, Steve Y. Yang (2019) --> *Notes that while this algorithm optimized short term portfolios, it was not so effective at optimizing long term portfolios.*
 
-- A. C. Briza and P. C. Naval, “Stock trading system based on the multi-objective particle swarm optimization of technical indicators on end-of-day market data,” Applied soft computing, vol. 11, no. 1, pp. 1191–1201, 2011, doi: 10.1016/j.asoc.2010.02.017. --> *Similar to the approach we will be taking*
+- A. C. Briza and P. C. Naval, “Stock trading system based on the multi-objective particle swarm optimization of technical indicators on end-of-day market data,” Applied soft computing, vol. 11, no. 1, pp. 1191–1201, 2011, doi: 10.1016/j.asoc.2010.02.017. --> *Similar to the problem we will be examining*
 
 ### 3. Ant Colony Optimization (ACO)
 General framework of the algorithm
@@ -101,7 +96,7 @@ While the stopping criterion is not met do:
 
 #### 3.1 ACO Pros & Cons
 **Pros:**
-- Capable of solving complex optimization problems [*But is this project a complex problem? I would say no - Georgia*]
+- Capable of solving complex optimization problems
 - Gives positive feedback for solutions in progress (can find good solutions efficiently)
 - Adapts in real time (can deal with dynamically changing graphs)
 
@@ -128,17 +123,17 @@ General framework of the algorithm
 **Pros:**
 - Robust - Good for solution spaces with multiple local optima
 - Is fastest algorithm of the 5 considered
-- Can be parallelized to improve speed further [*We could consider this if we have extra time to improve the project - Georgia*]
-- Beginner friendly [*Favourable as 40% of the group are new to AI - Georgia*]
+- Can be parallelized to improve speed further 
+- Beginner friendly
 
 **Cons:**
 - No-one in the group wrote about this type of algorithm in assignment 1.
-- Highly dependent on the control parameters involved [*As our parameters are fairly self-contained, I don't think this is an issue - Georgia*]
+- Highly dependent on the control parameters involved
 
 
 #### 4.2  Differential Further Reading
 -  "Differential Evolution: A Survey and Analysis" by Tarik Eltaeib and Ausif Mahmood (2018) Access: https://www.mdpi.com/2076-3417/8/10/1945
-- "Quantitative Trading Machine Learning Using Differential Evolution Algorithm" by Napas Vinitnantharat; Narit Inchan; Thatthai Sakkumjorn; Kitsada Doungjitjaroen; Chukiat Worasucheep (2019) Access: https://ieeexplore.ieee.org/document/8864226 --> *DE used to optimize trading strategy, **contains some pseudocode** and results. Might be good reference for the report and implementation. Their conclusion was this method worked well when market was fluctuating or trending downward, but performed poorly when market was trending upward.*
+- "Quantitative Trading Machine Learning Using Differential Evolution Algorithm" by Napas Vinitnantharat; Narit Inchan; Thatthai Sakkumjorn; Kitsada Doungjitjaroen; Chukiat Worasucheep (2019) Access: https://ieeexplore.ieee.org/document/8864226 --> *DE used to optimize trading strategy, **contains some pseudocode** and results. Their conclusion was this method worked well when market was fluctuating or trending downward, but performed poorly when market was trending upward.*
 
 ### 5. Artificial Bee Colony (ABC)
 General framework of the algorithm
@@ -154,15 +149,9 @@ General framework of the algorithm
 - Is a global optimization algorithm - it is capable of finding the global optimimum in the search space
 - Flexible - it can be applied to many different types of problems
 - Efficient - can handle large-scale optimization problems
-- The bee analogy is pretty cute...
+- The bee analogy is so fun
 
 **Cons:**
 - Can have high memory usage when dealing with large datasets
 - In some cases, the algorithm may focus too much on exploring a limited region of the search space, which can lead to suboptimal solutions.
 - Sensitive to initialization: The ABC algorithm can be sensitive to the initial population of candidate solutions, which can lead to variability in the results obtained.
-
-#### 5.2 ABC Further Reading
-- 
-
-## Measuring Success
-"Modeling, forecasting and trading the EUR exchange rates with hybrid rolling genetic algorithms—Support vector regression forecast combinations" by Georgios Sermpinis, Charalampos Stasinakis, Konstantinos Theofilatos, Andreas Karathanasopoulos (2015) notes that  "statistical accuracy is not always synonymous with financial profitability." We as a group need to make a conscious decision about whether to hold the bot's performance against its statistical accuracy or its financial profitablility. Given the specifications of the assignment, we feel that the financial profitablility is the best measure of success. We are provided clear instructions to consider the value of each trade and if we measured success based on statistical accuracy exclusively we could discard this variable. 
